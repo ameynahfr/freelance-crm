@@ -1,43 +1,49 @@
 import { useAuth } from "../hooks/useAuth.jsx";
+import { FaBell } from "react-icons/fa";
 
 export default function Header() {
-  const { logout } = useAuth();
+  const { user } = useAuth();
+
+  const today = new Date().toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
 
   return (
-    <header className="w-full bg-transparent flex-shrink-0 border-b border-white/5">
-      <div className="max-w-[1600px] mx-auto w-full flex justify-between items-center px-4 md:px-6 lg:px-8 py-3 lg:py-4">
+    <header className="w-full bg-transparent flex-shrink-0 border-b border-white/5 z-20 relative">
+      {/* FIX APPLIED:
+        - pl-20: Adds 80px left padding on mobile so text clears the fixed hamburger button.
+        - md:px-8: Resets to standard 32px padding on desktop screens (where hamburger is hidden).
+      */}
+      <div className="max-w-[1600px] mx-auto w-full flex justify-between items-center pl-20 pr-5 md:px-8 py-4">
+        
+        {/* Left: Personalized Greeting */}
         <div>
-          <h2 className="text-base lg:text-lg font-bold text-white tracking-tight">
-            Hello, Freelancer! 👋
+          <h2 className="text-lg font-bold text-white tracking-tight">
+            Hello, {user?.name?.split(" ")[0] || "Freelancer"}! 👋
           </h2>
+          <p className="text-[10px] font-bold text-[#A29EAB] uppercase tracking-widest mt-0.5">
+            {today} • Let's get to work
+          </p>
         </div>
 
-        <div className="flex items-center gap-4 lg:gap-5">
-          <div className="flex items-center gap-4 lg:gap-5 border-l border-[#5B5569] pl-4 lg:pl-5">
-            <button className="text-[#A29EAB] hover:text-white transition-colors relative">
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                />
-              </svg>
-              <span className="absolute top-0 right-0 w-2 h-2 bg-[#F2EAE3] rounded-full border-2 border-[#35313F]"></span>
-            </button>
+        {/* Right: Actions */}
+        <div className="flex items-center gap-4">
+          
+          {/* Notification Icon */}
+          <button className="relative p-2.5 bg-[#464153] rounded-xl text-[#A29EAB] hover:text-white hover:bg-white/10 transition-all group">
+            <FaBell size={16} />
+            <span className="absolute top-2 right-2.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-[#464153] group-hover:border-[#5B5569]"></span>
+          </button>
 
-            <button
-              onClick={logout}
-              className="bg-[#464153] text-[#A29EAB] px-4 py-2 rounded-full font-semibold text-xs hover:bg-[#F2EAE3] hover:text-[#35313F] transition-all duration-200"
-            >
-              Logout
-            </button>
+          {/* User Avatar Circle */}
+          <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-[#D2C9D8] to-white p-0.5 shadow-lg">
+            <div className="h-full w-full rounded-full bg-[#35313F] flex items-center justify-center text-xs font-bold text-white">
+              {user?.name ? user.name.charAt(0).toUpperCase() : "F"}
+            </div>
           </div>
+
         </div>
       </div>
     </header>

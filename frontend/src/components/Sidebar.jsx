@@ -1,79 +1,126 @@
-import { NavLink, Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux"; // Assuming you use Redux for auth state
+import { logout } from "../redux/authSlice"; // Adjust path to your auth slice
 import {
-  FaTachometerAlt,
+  FaThLarge,
   FaProjectDiagram,
   FaTasks,
-  FaFileInvoiceDollar,
-  FaSignOutAlt,
   FaUserFriends,
+  FaFileInvoiceDollar,
+  FaUser,
+  FaSignOutAlt,
+  FaBars,
+  FaTimes
 } from "react-icons/fa";
-import { useAuth } from "../hooks/useAuth.jsx";
+import { useState } from "react";
 
 export default function Sidebar() {
-  const { logout } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const [isOpen, setIsOpen] = useState(false);
 
-  const navLinks = [
-    { name: "Dashboard", path: "/dashboard", icon: <FaTachometerAlt /> },
-    { name: "Projects", path: "/projects", icon: <FaProjectDiagram /> },
-    { name: "Tasks", path: "/tasks", icon: <FaTasks /> },
-    { name: "Clients", path: "/clients", icon: <FaUserFriends /> },
-    { name: "Invoices", path: "/invoices", icon: <FaFileInvoiceDollar /> },
+  // If you aren't using Redux yet, you can replace this with a local storage clear function
+  const handleLogout = () => {
+    dispatch(logout()); // or localStorage.removeItem('token');
+    navigate("/login");
+  };
+
+  const menuItems = [
+    { path: "/dashboard", label: "Overview", icon: <FaThLarge /> },
+    { path: "/projects", label: "Projects", icon: <FaProjectDiagram /> },
+    { path: "/tasks", label: "My Tasks", icon: <FaTasks /> },
+    { path: "/clients", label: "Clients", icon: <FaUserFriends /> },
+    { path: "/invoices", label: "Invoices", icon: <FaFileInvoiceDollar /> },
   ];
 
+  const isActive = (path) => {
+    // Matches exact path or sub-paths (e.g., /projects/123 highlights Projects)
+    return location.pathname.startsWith(path);
+  };
+
   return (
-    <aside className="w-16 lg:w-20 flex flex-col items-center py-5 lg:py-6 h-full bg-[#35313F] md:bg-transparent border-r border-white/5 z-20 flex-shrink-0">
-      <div className="mb-8 lg:mb-10">
-        <h1 className="text-lg lg:text-xl font-bold text-white tracking-tighter">
-          CRM
-        </h1>
-      </div>
+    <>
+      {/* Mobile Menu Button (Hamburger) */}
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="md:hidden fixed top-4 left-4 z-50 p-2 bg-[#35313F] text-white rounded-xl shadow-lg border border-white/10"
+      >
+        {isOpen ? <FaTimes /> : <FaBars />}
+      </button>
 
-      <nav className="flex-1 flex flex-col gap-4 w-full items-center">
-        {navLinks.map((link) => (
-          <NavLink
-            key={link.name}
-            to={link.path}
-            className={({ isActive }) =>
-              `relative group flex items-center justify-center w-10 h-10 lg:w-11 lg:h-11 rounded-full transition-all duration-300 ${
-                isActive
-                  ? "bg-white text-[#35313F] shadow-md scale-105"
-                  : "text-[#A29EAB] hover:bg-[#464153] hover:text-white"
-              }`
-            }
+      {/* Sidebar Container */}
+      <aside 
+        className={`
+          fixed inset-y-0 left-0 z-40 w-64 bg-[#35313F] border-r border-[#5B5569]/30 transition-transform duration-300 ease-in-out
+          md:relative md:translate-x-0 flex flex-col justify-between
+          ${isOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"}
+        `}
+      >
+        {/* Logo Area */}
+        <div className="p-8 pb-4">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-8 h-8 bg-[#D2C9D8] rounded-lg flex items-center justify-center text-[#35313F] font-black text-xl">
+              F
+            </div>
+            <h1 className="text-xl font-bold text-white tracking-tight">Freelance<span className="text-[#A29EAB]">OS</span></h1>
+          </div>
+
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-[#5B5569]/50 to-transparent" />
+        </div>
+
+        {/* Navigation Links */}
+        <nav className="flex-1 px-4 space-y-2 overflow-y-auto custom-scrollbar">
+          {menuItems.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              onClick={() => setIsOpen(false)} // Close mobile menu on click
+              className={`
+                flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-200 group
+                ${isActive(item.path) 
+                  ? "bg-[#D2C9D8] text-[#35313F] shadow-lg shadow-[#D2C9D8]/20" 
+                  : "text-[#A29EAB] hover:bg-white/5 hover:text-white"}
+              `}
+            >
+              <span className={`text-lg ${isActive(item.path) ? "scale-110" : "group-hover:scale-110"} transition-transform duration-200`}>
+                {item.icon}
+              </span>
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+
+        {/* Bottom Actions (Profile & Logout) */}
+        <div className="p-4 mt-auto space-y-2">
+          <Link
+            to="/profile"
+            className={`
+              flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-200
+              ${isActive("/profile") 
+                ? "bg-[#464153] text-white border border-white/10" 
+                : "text-[#A29EAB] hover:bg-white/5 hover:text-white"}
+            `}
           >
-            <span className="text-lg">{link.icon}</span>
-            <span className="absolute left-14 lg:left-16 bg-[#464153] text-white text-xs font-bold px-3 py-1.5 rounded-lg opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap shadow-md z-50">
-              {link.name}
-            </span>
-          </NavLink>
-        ))}
-      </nav>
+            <FaUser /> Profile
+          </Link>
 
-      <div className="mt-auto flex flex-col items-center gap-5">
-        {/* Restored Dicebear Avatar */}
-        <Link
-          to="/profile"
-          className="w-8 h-8 lg:w-10 lg:h-10 rounded-full border-2 border-[#464153] overflow-hidden cursor-pointer hover:border-white transition-colors block"
-        >
-          <img
-            src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
-            alt="User avatar"
-            className="w-full h-full object-cover bg-[#D2C9D8]"
-          />
-        </Link>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-rose-400 hover:bg-rose-500/10 transition-colors"
+          >
+            <FaSignOutAlt /> Logout
+          </button>
+        </div>
+      </aside>
 
-        <button
-          onClick={logout}
-          className="relative group flex items-center justify-center w-10 h-10 lg:w-11 lg:h-11 rounded-full text-[#A29EAB] hover:bg-[#464153] hover:text-rose-400 transition-all duration-300"
-        >
-          <span className="text-lg">
-            <FaSignOutAlt />
-          </span>
-          <span className="absolute left-14 lg:left-16 bg-[#464153] text-white text-xs font-bold px-3 py-1.5 rounded-lg opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap shadow-md z-50">
-            Logout
-          </span>
-        </button>
-      </div>
-    </aside>
+      {/* Mobile Backdrop */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 md:hidden"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+    </>
   );
 }

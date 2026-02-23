@@ -20,6 +20,9 @@ export default function Dashboard() {
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  
+  // 1. Add Search State
+  const [searchTerm, setSearchTerm] = useState("");
 
   const fetchMetrics = useCallback(async () => {
     try {
@@ -37,6 +40,17 @@ export default function Dashboard() {
   useEffect(() => {
     if (token) fetchMetrics();
   }, [token, fetchMetrics]);
+
+  // 2. Filter Logic
+  // We filter the lists based on the search term before rendering
+  const filteredProjects = metrics?.projectProgressData?.filter(p => 
+    p.title.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || [];
+
+  const filteredTasks = metrics?.upcomingTasks?.filter(t => 
+    t.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    t.project?.title?.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || [];
 
   if (loading)
     return (
@@ -96,9 +110,12 @@ export default function Dashboard() {
                         d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                       />
                     </svg>
+                    {/* 3. Bind Input to State */}
                     <input
                       type="text"
                       placeholder="Search projects..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
                       className="bg-transparent border-none outline-none text-white placeholder-[#A29EAB] w-24 lg:w-32"
                     />
                   </div>
@@ -115,49 +132,66 @@ export default function Dashboard() {
             <div className="max-w-[1600px] mx-auto w-full px-4 md:px-6 lg:px-8 py-4 lg:py-6">
               {/* --- MASTER BENTO GRID --- */}
               <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 lg:gap-5">
-                {/* 1. LEFT COLUMN: The Tall Profile Anchor Card */}
-                <div className="xl:col-span-1 flex flex-col">
+                {/* 1. LEFT COLUMN: The Pro Profile Anchor */}
+                <div className="xl:col-span-1 flex flex-col h-full">
                   <div className="bg-[#464153] rounded-[2rem] p-6 lg:p-8 flex flex-col items-center text-center border border-white/5 shadow-inner h-full relative overflow-hidden">
+                    
                     {/* Decorative Background Arc */}
                     <div className="absolute top-0 left-0 w-full h-32 bg-[#5B5569]/30 rounded-b-[50%] scale-150 -translate-y-10" />
 
-                    <div className="relative w-24 h-24 lg:w-32 lg:h-32 rounded-full border-4 border-[#35313F] overflow-hidden bg-[#D2C9D8] shadow-xl mb-5 mt-4">
-                      <img
-                        src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
-                        alt="Avatar"
-                        className="w-full h-full object-cover"
-                      />
+                    {/* Avatar with Availability Badge */}
+                    <div className="relative mb-5 mt-4">
+                      <div className="w-24 h-24 lg:w-32 lg:h-32 rounded-full border-4 border-[#35313F] overflow-hidden bg-[#D2C9D8] shadow-xl">
+                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="Avatar" className="w-full h-full object-cover" />
+                      </div>
+                      <div className="absolute bottom-1 right-1 lg:bottom-2 lg:right-2 w-5 h-5 lg:w-6 lg:h-6 bg-emerald-500 border-4 border-[#464153] rounded-full flex items-center justify-center" title="Available for work">
+                        <div className="w-full h-full rounded-full animate-ping opacity-20 bg-emerald-400 absolute"></div>
+                      </div>
                     </div>
-
+                    
                     <h2 className="text-xl lg:text-2xl font-bold text-white tracking-tight mb-1">
                       {metrics.user?.name || "User"}
                     </h2>
-                    <p className="text-[10px] lg:text-xs font-bold text-[#A29EAB] uppercase tracking-widest mb-6">
+                    <p className="text-[10px] lg:text-xs font-bold text-[#A29EAB] uppercase tracking-widest mb-4">
                       {metrics.user?.role || "Freelancer"}
                     </p>
 
+                    <div className="flex flex-wrap justify-center gap-2 mb-6">
+                      {["React", "Node.js", "Design"].map((tag) => (
+                        <span key={tag} className="px-2.5 py-1 rounded-md bg-[#35313F] border border-white/5 text-[10px] font-semibold text-[#A29EAB]">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+
                     <div className="w-full h-px bg-[#5B5569]/50 mb-6" />
 
-                    {/* Mini Bento element inside the profile card */}
-                    <div className="w-full bg-[#35313F]/50 rounded-2xl p-4 mb-6 text-left border border-white/5">
-                      <div className="flex justify-between items-end mb-2">
-                        <span className="text-[10px] font-bold text-[#A29EAB] uppercase tracking-wider">
-                          Weekly Activity
-                        </span>
-                        <span className="text-xs font-bold text-white">
-                          {metrics.completedProjects || 0} Done
-                        </span>
+                    <div className="w-full grid grid-cols-2 gap-4 mb-6">
+                      <div className="text-center p-3 rounded-2xl bg-[#35313F]/30 border border-white/5">
+                        <div className="text-[9px] font-bold text-[#A29EAB] uppercase mb-1">Joined</div>
+                        <div className="text-xs font-bold text-white">Feb 2026</div>
                       </div>
-                      <div className="w-full bg-[#35313F] h-1.5 rounded-full overflow-hidden">
-                        <div className="bg-emerald-400 h-full rounded-full w-[75%]" />
+                      <div className="text-center p-3 rounded-2xl bg-[#35313F]/30 border border-white/5">
+                        <div className="text-[9px] font-bold text-[#A29EAB] uppercase mb-1">Clients</div>
+                        <div className="text-xs font-bold text-white">4 Active</div>
                       </div>
                     </div>
 
-                    <div className="mt-auto w-full pt-4">
-                      <Link
-                        to="/profile"
-                        className="w-full flex items-center justify-center gap-2 bg-white/10 text-white px-6 py-3 rounded-xl text-xs font-bold hover:bg-white/20 transition shadow-sm"
-                      >
+                    <div className="w-full bg-[#35313F]/50 rounded-2xl p-4 mb-auto text-left border border-white/5 relative overflow-hidden group">
+                      <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <svg className="w-12 h-12 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.002z" /></svg>
+                      </div>
+                      <div className="flex justify-between items-end mb-2 relative z-10">
+                        <span className="text-[10px] font-bold text-[#A29EAB] uppercase tracking-wider">Weekly Goal</span>
+                        <span className="text-xs font-bold text-white">{metrics.completedProjects || 0} / 5</span>
+                      </div>
+                      <div className="w-full bg-[#35313F] h-1.5 rounded-full overflow-hidden relative z-10">
+                        <div className="bg-emerald-400 h-full rounded-full w-[40%]" />
+                      </div>
+                    </div>
+
+                    <div className="mt-6 w-full">
+                      <Link to="/profile" className="w-full flex items-center justify-center gap-2 bg-white/10 text-white px-6 py-3 rounded-xl text-xs font-bold hover:bg-white/20 transition shadow-sm">
                         <FaEdit /> Edit Profile
                       </Link>
                     </div>
@@ -166,7 +200,6 @@ export default function Dashboard() {
 
                 {/* 2. RIGHT COLUMN: The Data Hub */}
                 <div className="xl:col-span-3 flex flex-col gap-4 lg:gap-5">
-                  {/* Top Metric Cards (3x2 Grid) */}
                   <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
                     {[
                       {
@@ -281,14 +314,14 @@ export default function Dashboard() {
                       </div>
                     </div>
 
-                    {/* Active Projects Health */}
+                    {/* Active Projects Health - WITH SEARCH FILTER */}
                     <div className="bg-[#F2EAE3] rounded-2xl p-4 lg:p-5 text-[#35313F] flex flex-col shadow-inner">
                       <h3 className="text-sm lg:text-base font-bold tracking-tight mb-4 lg:mb-5">
                         Project Health
                       </h3>
-                      {metrics.projectProgressData?.length > 0 ? (
+                      {filteredProjects.length > 0 ? (
                         <div className="space-y-4 lg:space-y-5 flex-1">
-                          {metrics.projectProgressData.map((project) => (
+                          {filteredProjects.map((project) => (
                             <div key={project._id} className="group">
                               <div className="flex justify-between text-[10px] lg:text-xs font-bold mb-1.5">
                                 <span className="truncate pr-2">
@@ -310,7 +343,7 @@ export default function Dashboard() {
                       ) : (
                         <div className="flex-1 flex flex-col items-center justify-center text-center">
                           <p className="text-[10px] lg:text-xs font-medium text-[#847F8D]">
-                            No active projects.
+                            {searchTerm ? "No projects match your search." : "No active projects."}
                           </p>
                         </div>
                       )}
@@ -323,7 +356,7 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  {/* Upcoming Tasks Feed */}
+                  {/* Upcoming Tasks Feed - WITH SEARCH FILTER */}
                   <div className="bg-[#464153] rounded-2xl p-4 lg:p-5 border border-white/5 shadow-inner">
                     <div className="flex justify-between items-center mb-3 lg:mb-4">
                       <h3 className="text-sm lg:text-base font-bold text-white">
@@ -343,8 +376,8 @@ export default function Dashboard() {
                         <div>Status</div>
                         <div>Due Date</div>
                       </div>
-                      {metrics.upcomingTasks?.length > 0 ? (
-                        metrics.upcomingTasks.map((task) => (
+                      {filteredTasks.length > 0 ? (
+                        filteredTasks.map((task) => (
                           <div
                             key={task._id}
                             className="grid grid-cols-4 items-center px-2 lg:px-3 py-2.5 lg:py-3 hover:bg-[#5B5569]/30 rounded-lg transition-colors cursor-pointer"
@@ -370,7 +403,7 @@ export default function Dashboard() {
                         ))
                       ) : (
                         <div className="text-center py-5 lg:py-6 text-[#A29EAB] text-[10px] lg:text-xs font-medium">
-                          You have no upcoming tasks! 🎉
+                          {searchTerm ? "No tasks match your search." : "You have no upcoming tasks! 🎉"}
                         </div>
                       )}
                     </div>

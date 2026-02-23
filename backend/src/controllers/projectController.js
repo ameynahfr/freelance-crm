@@ -113,3 +113,23 @@ export const deleteProject = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+export const getProjectById = async (req, res) => {
+  try {
+    // Find project and populate client details (so we can show the client name)
+    const project = await Project.findById(req.params.id).populate("client", "name email");
+
+    if (project) {
+      // Security check: Ensure the project belongs to the logged-in user
+      if (project.user.toString() !== req.user._id.toString()) {
+        return res.status(401).json({ message: "Not authorized to view this project" });
+      }
+      res.json(project);
+    } else {
+      res.status(404).json({ message: "Project not found" });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};

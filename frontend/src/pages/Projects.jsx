@@ -254,14 +254,14 @@ export default function Projects() {
                             >
                               <FaEdit size={11} /> Edit
                             </button>
-
                             {/* View Action */}
                             <Link
-                              to={`/tasks/project/${project._id}`}
+                              to={`/projects/${project._id}`} // CHANGED: Points to new Details page
                               className="text-[11px] font-bold text-white hover:text-[#D2C9D8] transition flex items-center gap-1.5"
                             >
                               <FaExternalLinkAlt size={10} /> View
                             </Link>
+                            
 
                             {/* Delete Action (Optional: icon only to save space) */}
                             <button

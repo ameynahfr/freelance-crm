@@ -1,141 +1,160 @@
-import mongoose from "mongoose";
 import Task from "../models/Task.js";
 import Project from "../models/Project.js";
 
 /**
- * GET TASKS
- * Supports fetching all tasks for a user OR tasks for a specific project
+ * HELPER: Auto-Calculate Project Progress
+ * This counts all tasks vs. completed tasks and updates the Project model.
  */
-export const getTasks = async (req, res) => {
+const updateProjectProgress = async (projectId) => {
+  if (!projectId) return;
+
   try {
-    const { projectId } = req.params;
+    const totalTasks = await Task.countDocuments({ project: projectId });
+    const completedTasks = await Task.countDocuments({
+      project: projectId,
+      status: "done",
+    });
 
-    // Base query: always filter by the logged-in user
-    let query = { user: req.user._id };
+    // Calculate percentage (avoid division by zero)
+    const progress =
+      totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
 
-    // If a projectId is provided and isn't the "all" keyword
-    if (projectId && projectId !== "all" && projectId !== "undefined") {
-      if (!mongoose.Types.ObjectId.isValid(projectId)) {
-        return res.status(400).json({ message: "Invalid project id" });
-      }
+    // Save the new progress to the project
+    await Project.findByIdAndUpdate(projectId, { progress });
+  } catch (error) {
+    console.error("Error updating project progress:", error);
+  }
+};
 
-      // Optional: Verify project exists and belongs to user before filtering
-      const project = await Project.findOne({
-        _id: projectId,
-        user: req.user._id,
-      });
+/**
+ * @desc    Create a task
+ * @route   POST /api/tasks/project/:projectId
+ */
+export const createTask = async (req, res) => {
+  try {
+    const { title, description, status, dueDate } = req.body;
+    
+    // Support creating tasks via URL param OR body (for flexibility)
+    const projectId = req.params.projectId || req.body.project;
 
-      if (!project) {
-        return res.status(404).json({ message: "Project not found" });
-      }
+    const task = await Task.create({
+      user: req.user._id,
+      project: projectId || null, // Tasks can be global (no project)
+      title,
+      description,
+      status: status || "todo",
+      dueDate,
+    });
 
-      query.project = projectId;
+    // ⚡ AUTO-UPDATE: If linked to a project, recalculate progress
+    if (projectId) {
+      await updateProjectProgress(projectId);
     }
 
-    // Fetch tasks, populate project title for the global view, and sort by newest
-    const tasks = await Task.find(query)
-      .populate("project", "title")
-      .sort({ createdAt: -1 });
-
-    res.json(tasks);
+    res.status(201).json(task);
   } catch (error) {
-    console.error("Get tasks error:", error);
+    console.error("Create task error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
 
 /**
- * CREATE TASK
- * Associated with a specific project
+ * @desc    Get all tasks for a specific project
+ * @route   GET /api/tasks/project/:projectId
  */
-export const createTask = async (req, res) => {
+export const getProjectTasks = async (req, res) => {
   try {
-    const { projectId } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(projectId)) {
-      return res.status(400).json({ message: "Invalid project id" });
-    }
-
-    // Ensure the project belongs to the user
-    const project = await Project.findOne({
-      _id: projectId,
+    const tasks = await Task.find({
+      project: req.params.projectId,
       user: req.user._id,
-    });
+    }).sort({ createdAt: -1 }); // Newest first
 
-    if (!project) {
-      return res.status(404).json({ message: "Project not found" });
-    }
-
-    const task = await Task.create({
-      ...req.body,
-      project: projectId,
-      user: req.user._id,
-    });
-
-    // Populate project info before sending back to frontend
-    const populatedTask = await Task.findById(task._id).populate(
-      "project",
-      "title",
-    );
-
-    res.status(201).json(populatedTask);
+    res.json(tasks);
   } catch (error) {
-    console.error("Create task error:", error);
-    res.status(500).json({ message: "Task creation failed" });
+    console.error("Get project tasks error:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
 /**
- * UPDATE TASK
+ * @desc    Get ALL tasks for the logged-in user (Global View)
+ * @route   GET /api/tasks/all
+ */
+export const getAllTasks = async (req, res) => {
+  try {
+    const tasks = await Task.find({ user: req.user._id })
+      .populate("project", "title") // Populate project title for badges
+      .sort({ createdAt: -1 });
+
+    res.json(tasks);
+  } catch (error) {
+    console.error("Get all tasks error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+/**
+ * @desc    Update task (Status, Title, etc.)
+ * @route   PUT /api/tasks/:id
  */
 export const updateTask = async (req, res) => {
   try {
-    const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid task id" });
-    }
-
-    const task = await Task.findOneAndUpdate(
-      { _id: id, user: req.user._id },
-      { $set: req.body },
-      { new: true, runValidators: true },
-    ).populate("project", "title");
+    const task = await Task.findById(req.params.id);
 
     if (!task) {
       return res.status(404).json({ message: "Task not found" });
     }
 
-    res.json(task);
+    // Security: Ensure user owns the task
+    if (task.user.toString() !== req.user._id.toString()) {
+      return res.status(401).json({ message: "Not authorized" });
+    }
+
+    const updatedTask = await Task.findByIdAndUpdate(req.params.id, req.body, {
+      new: true, // Return the updated document
+    });
+
+    // ⚡ AUTO-UPDATE: Recalculate progress for the associated project
+    if (updatedTask.project) {
+      await updateProjectProgress(updatedTask.project);
+    }
+
+    res.json(updatedTask);
   } catch (error) {
     console.error("Update task error:", error);
-    res.status(500).json({ message: "Task update failed" });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
 /**
- * DELETE TASK
+ * @desc    Delete task
+ * @route   DELETE /api/tasks/:id
  */
 export const deleteTask = async (req, res) => {
   try {
-    const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid task id" });
-    }
-
-    const task = await Task.findOneAndDelete({
-      _id: id,
-      user: req.user._id,
-    });
+    const task = await Task.findById(req.params.id);
 
     if (!task) {
       return res.status(404).json({ message: "Task not found" });
+    }
+
+    if (task.user.toString() !== req.user._id.toString()) {
+      return res.status(401).json({ message: "Not authorized" });
+    }
+
+    // Capture project ID before deleting so we can update progress
+    const projectId = task.project;
+
+    await task.deleteOne();
+
+    // ⚡ AUTO-UPDATE: Recalculate progress after deletion
+    if (projectId) {
+      await updateProjectProgress(projectId);
     }
 
     res.json({ message: "Task removed" });
   } catch (error) {
     console.error("Delete task error:", error);
-    res.status(500).json({ message: "Task deletion failed" });
+    res.status(500).json({ message: "Server error" });
   }
 };
