@@ -8,6 +8,8 @@ import {
   FaAlignLeft,
   FaFolder,
   FaSave,
+  FaUsers, // New Icon
+  FaMoneyBillWave // Added just in case you want budget later
 } from "react-icons/fa";
 
 export default function ProjectModal({ token, onClose, onUpdated, editData }) {
@@ -18,24 +20,47 @@ export default function ProjectModal({ token, onClose, onUpdated, editData }) {
   const [deadline, setDeadline] = useState(
     editData?.deadline ? editData.deadline.split("T")[0] : "",
   );
+  
+  // --- NEW: Team State ---
+  // If editData.team exists, we map it to get just the IDs (in case populated objects were sent)
+  const [selectedTeam, setSelectedTeam] = useState(
+    editData?.team ? editData.team.map(m => typeof m === 'object' ? m._id : m) : []
+  );
+  const [teamMembers, setTeamMembers] = useState([]);
 
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
 
   useEffect(() => {
-    const fetchClients = async () => {
+    const fetchData = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/clients", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setClients(res.data);
+        // Fetch Clients AND Team Members in parallel
+        const [clientsRes, teamRes] = await Promise.all([
+          axios.get("http://localhost:5000/api/clients", { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get("http://localhost:5000/api/team", { headers: { Authorization: `Bearer ${token}` } })
+        ]);
+
+        setClients(clientsRes.data);
+        setTeamMembers(teamRes.data);
       } catch (err) {
-        console.error("Failed to load clients:", err);
+        console.error("Failed to load data:", err);
+        setMessage({ type: "error", text: "Failed to load clients or team." });
       }
     };
-    fetchClients();
+    fetchData();
   }, [token]);
+
+  // Handle clicking a team member
+  const handleTeamToggle = (memberId) => {
+    setSelectedTeam(prev => {
+      if (prev.includes(memberId)) {
+        return prev.filter(id => id !== memberId); // Remove
+      } else {
+        return [...prev, memberId]; // Add
+      }
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -46,9 +71,9 @@ export default function ProjectModal({ token, onClose, onUpdated, editData }) {
       title,
       description,
       status,
-      // Removed "progress" - calculated by backend now
       deadline: deadline || null,
       client: client || null,
+      team: selectedTeam // Send the array of User IDs
     };
 
     const url = editData
@@ -175,11 +200,51 @@ export default function ProjectModal({ token, onClose, onUpdated, editData }) {
             />
           </div>
 
-          {/* Note regarding progress */}
-          <div className="bg-[#464153]/50 p-4 rounded-xl border border-white/5">
-            <p className="text-[10px] text-[#A29EAB]">
-              <span className="font-bold text-white">Note:</span> Progress is calculated automatically based on completed tasks.
-            </p>
+          {/* --- NEW: Assign Team Section --- */}
+          <div>
+            <label className="text-[11px] font-bold text-[#A29EAB] uppercase tracking-wider mb-2 block ml-1 flex items-center gap-2">
+              <FaUsers size={12} /> Assign Team
+            </label>
+            
+            <div className="bg-[#464153]/30 p-2 rounded-xl border border-white/5 max-h-40 overflow-y-auto custom-scrollbar">
+              {teamMembers.length === 0 ? (
+                 <div className="text-center py-4">
+                   <p className="text-xs text-[#A29EAB]">No team members found.</p>
+                   <p className="text-[10px] text-[#A29EAB] opacity-70">Go to the Team page to add people.</p>
+                 </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {teamMembers.map(member => (
+                    <div 
+                      key={member._id}
+                      onClick={() => handleTeamToggle(member._id)}
+                      className={`
+                        flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all border
+                        ${selectedTeam.includes(member._id) 
+                          ? "bg-[#D2C9D8] border-[#D2C9D8]" 
+                          : "bg-[#464153] border-transparent hover:border-white/20"}
+                      `}
+                    >
+                      {/* Initials Avatar */}
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold transition-colors ${
+                        selectedTeam.includes(member._id) ? "bg-[#35313F] text-white" : "bg-[#35313F] text-[#D2C9D8]"
+                      }`}>
+                        {member.name.charAt(0)}
+                      </div>
+                      
+                      <div className="min-w-0">
+                        <p className={`text-xs font-bold truncate ${selectedTeam.includes(member._id) ? "text-[#35313F]" : "text-white"}`}>
+                          {member.name}
+                        </p>
+                        <p className={`text-[10px] truncate ${selectedTeam.includes(member._id) ? "text-[#35313F]/70" : "text-[#A29EAB]"}`}>
+                          {member.title || "Member"}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="pt-2 flex gap-3">

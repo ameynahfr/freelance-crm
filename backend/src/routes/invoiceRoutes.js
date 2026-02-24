@@ -1,10 +1,10 @@
 import express from "express";
 import {
-  createProjectInvoice, // create invoice for a real project
+  createProjectInvoice,
   getInvoices,
   getInvoiceById,
   updateInvoiceStatus,
-  getInvoicePDF, // optional: mark paid/unpaid
+  getInvoicePDF,
 } from "../controllers/invoiceController.js";
 import { protect } from "../middlewares/authMiddleware.js";
 
@@ -17,13 +17,16 @@ router.use(protect);
 router.get("/", getInvoices);
 
 // Create invoice for an existing project
+// This matches your frontend call: POST /api/invoices/project/:projectId
 router.post("/project/:projectId", createProjectInvoice);
 
-// Optional: Get single invoice
+// Get single invoice
 router.get("/:invoiceId", getInvoiceById);
 
-// Optional: Update invoice status (paid/unpaid)
+// Update invoice status (paid/unpaid)
 router.put("/:invoiceId/status", updateInvoiceStatus);
-// GET /api/invoices/:invoiceId/pdf
+
+// Generate PDF
 router.get("/:invoiceId/pdf", getInvoicePDF);
+
 export default router;

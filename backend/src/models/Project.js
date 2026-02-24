@@ -22,23 +22,42 @@ const projectSchema = new mongoose.Schema(
       min: 0,
       max: 100,
     },
-    // CHANGED: From String to ObjectId reference
+    
+    // 🔗 Client Reference (Optional for internal projects)
     client: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Client",
-      required: false, // Allows "Self Project"
+      required: false, 
       index: true,
     },
+
+    // 👤 The Owner/Creator (REQUIRED by your schema)
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
       index: true,
     },
+
+    // 👑 The Agency Manager (REQUIRED by your schema)
+    manager: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    }, 
+    
+    // 👥 The Team (Array of Users)
+    team: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
+// Compound index for faster lookups
 projectSchema.index({ user: 1, status: 1 });
 
 export default mongoose.model("Project", projectSchema);

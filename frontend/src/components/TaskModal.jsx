@@ -7,7 +7,8 @@ import {
   FaProjectDiagram,
   FaTasks,
   FaSave,
-  FaCheckCircle
+  FaCheckCircle,
+  FaUser // New Icon
 } from "react-icons/fa";
 
 export default function TaskModal({ projectId, token, onClose, onCreated, editData }) {
@@ -15,15 +16,19 @@ export default function TaskModal({ projectId, token, onClose, onCreated, editDa
   const [description, setDescription] = useState(editData?.description || "");
   const [dueDate, setDueDate] = useState(editData?.dueDate ? editData.dueDate.split("T")[0] : "");
   const [status, setStatus] = useState(editData?.status || "todo");
+  
+  // --- NEW: Assignment State ---
+  const [assignedTo, setAssignedTo] = useState(editData?.assignedTo?._id || editData?.assignedTo || "");
+  const [projectTeam, setProjectTeam] = useState([]); // List of eligible members
 
-  // Global project selection (if creating from "All Tasks" view)
-  const [selectedProjectId, setSelectedProjectId] = useState(projectId || editData?.project?._id || "");
+  // Global project selection
+  const [selectedProjectId, setSelectedProjectId] = useState(projectId || editData?.project?._id || editData?.project || "");
   const [projectsList, setProjectsList] = useState([]);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
 
-  // Fetch projects only if we aren't already inside a specific project view
+  // 1. Fetch Projects List (Only if not inside a specific project view)
   useEffect(() => {
     if (!projectId && !editData) {
       const fetchProjects = async () => {
@@ -40,6 +45,40 @@ export default function TaskModal({ projectId, token, onClose, onCreated, editDa
     }
   }, [projectId, editData, token]);
 
+  // 2. Fetch Team Members when a Project is Selected
+  useEffect(() => {
+    const fetchProjectTeam = async () => {
+      if (!selectedProjectId) {
+        setProjectTeam([]);
+        return;
+      }
+
+      try {
+        // We fetch the single project details to get its team
+        const res = await axios.get(`http://localhost:5000/api/projects/${selectedProjectId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        
+        // Combine Manager + Team into one list for the dropdown
+        const project = res.data;
+        const manager = project.manager || project.user; // Handle both cases
+        
+        // Create a unique list of potential assignees
+        // (The backend usually includes manager in team, but we play it safe)
+        let team = project.team || [];
+        
+        // If team is populated (objects), use it. If IDs, we can't show names yet (unless we fetch users).
+        // Assuming your getProjectById populates 'team' as discussed previously.
+        setProjectTeam(team);
+
+      } catch (err) {
+        console.error("Failed to load project team", err);
+      }
+    };
+
+    fetchProjectTeam();
+  }, [selectedProjectId, token]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage({ type: "", text: "" });
@@ -54,6 +93,8 @@ export default function TaskModal({ projectId, token, onClose, onCreated, editDa
       title: title.trim(),
       description: description.trim(),
       status: status,
+      project: selectedProjectId, // Ensure project ID is sent
+      assignedTo: assignedTo || null // Send the selected user ID
     };
     if (dueDate) taskPayload.dueDate = dueDate;
 
@@ -101,14 +142,22 @@ export default function TaskModal({ projectId, token, onClose, onCreated, editDa
             </div>
           )}
 
-          {/* Project Selector (Only visible if adding from global view) */}
+          {/* Project Selector */}
           {!projectId && !editData && (
             <div>
               <label className="text-[11px] font-bold text-[#A29EAB] uppercase tracking-wider mb-2 block ml-1 flex items-center gap-2">
                 <FaProjectDiagram size={10} /> Assign to Project
               </label>
               <div className="relative">
-                <select required value={selectedProjectId} onChange={(e) => setSelectedProjectId(e.target.value)} className="w-full bg-[#464153] border-none rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-[#D2C9D8] outline-none cursor-pointer appearance-none">
+                <select 
+                  required 
+                  value={selectedProjectId} 
+                  onChange={(e) => {
+                    setSelectedProjectId(e.target.value);
+                    setAssignedTo(""); // Reset assignee when project changes
+                  }} 
+                  className="w-full bg-[#464153] border-none rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-[#D2C9D8] outline-none cursor-pointer appearance-none"
+                >
                   <option value="">-- Select a Project --</option>
                   {projectsList.map((p) => (
                     <option key={p._id} value={p._id}>{p.title}</option>
@@ -121,6 +170,7 @@ export default function TaskModal({ projectId, token, onClose, onCreated, editDa
             </div>
           )}
 
+          {/* Title */}
           <div>
             <label className="text-[11px] font-bold text-[#A29EAB] uppercase tracking-wider mb-2 block ml-1">Task Title</label>
             <div className="relative">
@@ -130,6 +180,7 @@ export default function TaskModal({ projectId, token, onClose, onCreated, editDa
           </div>
 
           <div className="grid grid-cols-2 gap-4">
+            {/* Due Date */}
             <div>
               <label className="text-[11px] font-bold text-[#A29EAB] uppercase tracking-wider mb-2 block ml-1">Due Date</label>
               <div className="relative">
@@ -137,6 +188,8 @@ export default function TaskModal({ projectId, token, onClose, onCreated, editDa
                 <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="w-full bg-[#464153] border-none rounded-xl pl-10 pr-4 py-3 text-sm text-white focus:ring-2 focus:ring-[#D2C9D8] [color-scheme:dark] outline-none" />
               </div>
             </div>
+            
+            {/* Status */}
             <div>
               <label className="text-[11px] font-bold text-[#A29EAB] uppercase tracking-wider mb-2 block ml-1">Status</label>
               <div className="relative">
@@ -150,6 +203,35 @@ export default function TaskModal({ projectId, token, onClose, onCreated, editDa
             </div>
           </div>
 
+          {/* --- NEW: Assign To Dropdown --- */}
+          <div>
+            <label className="text-[11px] font-bold text-[#A29EAB] uppercase tracking-wider mb-2 block ml-1 flex items-center gap-2">
+              <FaUser size={10} /> Assign Member
+            </label>
+            <div className="relative">
+              <select 
+                value={assignedTo} 
+                onChange={(e) => setAssignedTo(e.target.value)} 
+                disabled={!selectedProjectId}
+                className="w-full bg-[#464153] border-none rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-[#D2C9D8] outline-none cursor-pointer appearance-none disabled:opacity-50"
+              >
+                <option value="">Unassigned</option>
+                {projectTeam.map((member) => (
+                  <option key={member._id} value={member._id}>
+                    {member.name} ({member.title || "Member"})
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-[#A29EAB]">
+                <svg className="fill-current h-4 w-4" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
+              </div>
+            </div>
+            {!selectedProjectId && (
+              <p className="text-[10px] text-[#A29EAB] mt-1 ml-1">Select a project first to see team members.</p>
+            )}
+          </div>
+
+          {/* Description */}
           <div>
             <label className="text-[11px] font-bold text-[#A29EAB] uppercase tracking-wider mb-2 block ml-1 flex items-center gap-2">
               <FaAlignLeft size={10} /> Description

@@ -12,6 +12,7 @@ import paymentRoutes from "./routes/paymentRoutes.js";
 import paymentLogRoutes from "./routes/paymentLogRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import { handleWebhook } from "./controllers/payments.webhook.js";
+import teamRoutes from "./routes/teamRoutes.js";
 
 const app = express();
 
@@ -37,7 +38,7 @@ app.use("/api/invoices", invoiceRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/payment-logs", paymentLogRoutes);
 app.use("/api/dashboard", dashboardRoutes);
-
+app.use("/api/team", teamRoutes);
 // Default route
 app.get("/", (req, res) => {
   res.send("Freelance SaaS API running...");

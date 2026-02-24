@@ -1,7 +1,8 @@
 import express from "express";
 import {
-  getAllTasks,      // NEW: For "All Tasks" view
-  getProjectTasks,  // NEW: For "Project Details" view
+  getAllTasks,
+  getProjectTasks,
+  getMyTasks, // NEW IMPORT
   createTask,
   updateTask,
   deleteTask,
@@ -10,17 +11,17 @@ import { protect } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-// All task routes are protected
 router.use(protect);
 
-// 1. Global View (All tasks across all projects)
-router.get("/all", getAllTasks);
+// 1. Special Routes (Must be before /:id)
+router.get("/all", getAllTasks);       // Admin view (Everything created by me)
+router.get("/my-tasks", getMyTasks);   // Employee view (Everything assigned to me)
 
 // 2. Project-Specific Routes
 router.get("/project/:projectId", getProjectTasks);
-router.post("/project/:projectId", createTask);
+router.post("/project/:projectId", createTask); // Can also accept assignedTo in body
 
-// 3. Single Task Operations (Update/Delete)
+// 3. Single Task Operations
 router.put("/:id", updateTask);
 router.delete("/:id", deleteTask);
 

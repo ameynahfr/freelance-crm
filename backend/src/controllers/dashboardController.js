@@ -1,104 +1,78 @@
 import Project from "../models/Project.js";
 import Task from "../models/Task.js";
 import Invoice from "../models/Invoice.js";
-import User from "../models/User.js"; // NEW: Import User model
+import User from "../models/User.js";
 
-/**
- * GET /api/dashboard
- * Private route
- */
 export const getDashboardMetrics = async (req, res) => {
   try {
     const userId = req.user._id;
+    const userRole = req.user.role;
     const now = new Date();
-
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(now.getDate() - 7);
 
-    // Run queries in parallel
+    // --- 1. Define Visibility Filter ---
+    // Owners/Managers see everything they created or manage.
+    // Members see only projects where they are in the 'team' array.
+    const projectFilter = userRole === "member" 
+      ? { team: userId } 
+      : { $or: [{ user: userId }, { manager: userId }, { team: userId }] };
+
+    const taskFilter = { assignedTo: userId, status: { $ne: "done" } };
+
+    // --- 2. Run Parallel Queries ---
+    const queries = [
+      User.findById(userId).select("name email role"),
+      Project.countDocuments({ ...projectFilter, status: "active" }),
+      Project.countDocuments({ ...projectFilter, status: "pending" }),
+      Project.countDocuments({ ...projectFilter, status: "completed" }),
+      Task.countDocuments({ assignedTo: userId, dueDate: { $lt: now }, status: { $ne: "done" } }),
+      Project.find(projectFilter).select("title progress client").sort({ updatedAt: -1 }).limit(5),
+      Task.find(taskFilter).populate("project", "title").sort({ dueDate: 1 }).limit(5),
+    ];
+
+    // Only fetch Invoice data if NOT a member
+    if (userRole !== "member") {
+      queries.push(
+        Invoice.aggregate([
+          { $match: { user: userId, status: "paid" } },
+          { $group: { _id: null, total: { $sum: "$amount" } } },
+        ]),
+        Invoice.aggregate([
+          { $match: { user: userId, status: { $in: ["unpaid", "partial", "overdue"] } } },
+          { $group: { _id: null, total: { $sum: "$amount" } } },
+        ]),
+        Invoice.aggregate([
+          { $match: { user: userId, status: "paid", updatedAt: { $gte: sevenDaysAgo } } },
+          { $group: { 
+              _id: { $dateToString: { format: "%Y-%m-%d", date: "$updatedAt" } }, 
+              earnings: { $sum: "$amount" } 
+          } },
+          { $sort: { _id: 1 } },
+        ])
+      );
+    }
+
+    const results = await Promise.all(queries);
+
+    // --- 3. Parse Results ---
     const [
-      userProfile, // NEW: Fetch user info for the welcome card
+      userProfile,
       activeProjects,
       pendingProjects,
       completedProjects,
-      totalEarningsAgg,
-      unpaidEarningsAgg,
       overdueTasks,
       projectProgressData,
-      earningsOverTimeRaw,
       upcomingTasks,
-    ] = await Promise.all([
-      // 1. User Profile Info
-      User.findById(userId).select("name email role"),
+      totalEarningsAgg,
+      unpaidEarningsAgg,
+      earningsOverTimeRaw
+    ] = results;
 
-      // 2. Active projects count
-      Project.countDocuments({ user: userId, status: "active" }),
+    const totalEarnings = totalEarningsAgg?.[0]?.total || 0;
+    const unpaidEarnings = unpaidEarningsAgg?.[0]?.total || 0;
 
-      // 3. Pending projects count
-      Project.countDocuments({ user: userId, status: "pending" }),
-
-      // 4. Completed projects count
-      Project.countDocuments({ user: userId, status: "completed" }),
-
-      // 5. Total revenue from PAID invoices
-      Invoice.aggregate([
-        { $match: { user: userId, status: "paid" } },
-        { $group: { _id: null, total: { $sum: "$amount" } } },
-      ]),
-
-      // 6. Outstanding money from UNPAID, PARTIAL, or OVERDUE invoices
-      Invoice.aggregate([
-        {
-          $match: {
-            user: userId,
-            status: { $in: ["unpaid", "partial", "overdue"] },
-          },
-        },
-        { $group: { _id: null, total: { $sum: "$amount" } } },
-      ]),
-
-      // 7. Overdue tasks
-      Task.countDocuments({
-        user: userId,
-        dueDate: { $lt: now },
-        status: { $ne: "done" },
-      }),
-
-      // 8. Active Projects Health
-      Project.find({ user: userId, status: "active" })
-        .select("title progress client")
-        .sort({ updatedAt: -1 })
-        .limit(5),
-
-      // 9. Earnings over time
-      Invoice.aggregate([
-        {
-          $match: {
-            user: userId,
-            status: "paid",
-            updatedAt: { $gte: sevenDaysAgo },
-          },
-        },
-        {
-          $group: {
-            _id: { $dateToString: { format: "%Y-%m-%d", date: "$updatedAt" } },
-            earnings: { $sum: "$amount" },
-          },
-        },
-        { $sort: { _id: 1 } },
-      ]),
-
-      // 10. Upcoming Tasks
-      Task.find({ user: userId, status: { $ne: "done" } })
-        .populate("project", "title")
-        .sort({ dueDate: 1 })
-        .limit(5),
-    ]);
-
-    const totalEarnings = totalEarningsAgg[0]?.total || 0;
-    const unpaidEarnings = unpaidEarningsAgg[0]?.total || 0;
-
-    const formattedEarnings = earningsOverTimeRaw.map((item) => {
+    const formattedEarnings = (earningsOverTimeRaw || []).map((item) => {
       const date = new Date(item._id);
       return {
         day: date.toLocaleDateString("en-US", { weekday: "short" }),
@@ -107,7 +81,7 @@ export const getDashboardMetrics = async (req, res) => {
     });
 
     res.json({
-      user: userProfile, // Send user info to dashboard
+      user: userProfile,
       activeProjects,
       pendingProjects,
       completedProjects,
@@ -118,6 +92,7 @@ export const getDashboardMetrics = async (req, res) => {
       earningsOverTime: formattedEarnings,
       upcomingTasks,
     });
+
   } catch (err) {
     console.error("Dashboard metrics error:", err);
     res.status(500).json({ message: "Failed to load dashboard metrics." });

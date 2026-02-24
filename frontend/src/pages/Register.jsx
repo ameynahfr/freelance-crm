@@ -1,117 +1,97 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../hooks/useAuth.jsx";
-import { Link, useNavigate } from "react-router-dom"; // Added useNavigate
+import { Link, useNavigate } from "react-router-dom";
+
+// 🚀 Curated Cool Avatars
+const AVATAR_OPTIONS = [
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
+  "https://api.dicebear.com/7.x/bottts/svg?seed=Aneka",
+  "https://api.dicebear.com/7.x/adventurer/svg?seed=James",
+  "https://api.dicebear.com/7.x/big-smile/svg?seed=Luna",
+  "https://api.dicebear.com/7.x/pixel-art/svg?seed=Nala",
+  "https://api.dicebear.com/7.x/lorelei/svg?seed=Bear",
+];
 
 export default function Register() {
-  const { register, error, isAuthenticated } = useAuth(); // Redux hooks
+  const { register, error, isAuthenticated } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [selectedAvatar, setSelectedAvatar] = useState(AVATAR_OPTIONS[0]);
   const navigate = useNavigate();
 
-  // Redirect if registration makes them authenticated immediately
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate("/dashboard");
-    }
+    if (isAuthenticated) navigate("/dashboard");
   }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const result = await register({ name, email, password });
-    
-    if (result.meta.requestStatus === 'fulfilled') {
-      navigate("/dashboard");
-    }
+    const result = await register({ name, email, password, profilePic: selectedAvatar });
+    if (result.meta.requestStatus === 'fulfilled') navigate("/dashboard");
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#D2C9D8] p-4 font-sans text-white">
-      <div className="flex w-full max-w-4xl bg-[#35313F] rounded-[1.5rem] shadow-xl overflow-hidden min-h-[500px]">
-        {/* LEFT SIDE - Branding */}
-        <div className="hidden lg:flex lg:w-1/2 p-10 flex-col justify-between">
+      <div className="flex w-full max-w-5xl bg-[#35313F] rounded-[2rem] shadow-2xl overflow-hidden min-h-[600px]">
+        
+        {/* LEFT: Branding */}
+        <div className="hidden lg:flex lg:w-2/5 p-12 flex-col justify-between bg-gradient-to-b from-[#464153] to-[#35313F]">
           <div>
-            <div className="text-2xl font-extrabold tracking-tight mb-6">CRM</div>
-            <h1 className="text-3xl font-bold tracking-tight text-white mb-3">Join FreelanceCRM</h1>
-            <p className="text-[#A29EAB] max-w-sm text-sm font-medium leading-relaxed">
-              Start managing your clients, invoices, and projects with crystal clarity. Setup takes less than a minute.
-            </p>
+            <div className="w-10 h-10 bg-[#D2C9D8] rounded-xl flex items-center justify-center text-[#35313F] font-black text-2xl mb-8">F</div>
+            <h1 className="text-4xl font-bold text-white mb-4">Start your Agency.</h1>
+            <p className="text-[#A29EAB] leading-relaxed">The operating system for modern freelancers and small studios.</p>
           </div>
-
           <div className="space-y-4">
-            <div className="bg-[#464153] p-4 rounded-2xl flex items-center gap-4">
-              <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-[#35313F] text-sm font-bold shadow-sm">✓</div>
-              <div>
-                <p className="font-bold text-white text-sm">Quick Setup</p>
-                <p className="text-[#A29EAB] text-xs mt-0.5">Get started in seconds</p>
-              </div>
-            </div>
-            <div className="bg-[#464153] p-4 rounded-2xl flex items-center gap-4">
-              <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-[#35313F] text-sm font-bold shadow-sm">✦</div>
-              <div>
-                <p className="font-bold text-white text-sm">All-in-one Toolkit</p>
-                <p className="text-[#A29EAB] text-xs mt-0.5">Everything a freelancer needs</p>
-              </div>
+            <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
+              <p className="text-white font-bold text-sm">Role: Agency Owner</p>
+              <p className="text-[#A29EAB] text-xs">You'll have full control over projects and team.</p>
             </div>
           </div>
         </div>
 
-        {/* RIGHT SIDE - Form */}
-        <div className="flex flex-1 items-center justify-center p-8 lg:p-10 bg-[#F2EAE3] text-[#35313F] rounded-[1.5rem] m-2 shadow-inner">
-          <form onSubmit={handleSubmit} className="w-full max-w-sm">
+        {/* RIGHT: Form */}
+        <div className="flex-1 p-8 lg:p-12 bg-[#F2EAE3] text-[#35313F] m-3 rounded-[1.5rem] overflow-y-auto custom-scrollbar">
+          <form onSubmit={handleSubmit} className="max-w-md mx-auto">
+            <h2 className="text-3xl font-black mb-2">Create Account</h2>
+            <p className="text-[#847F8D] mb-8 font-medium">Join the agency network in seconds.</p>
+
+            {/* AVATAR PICKER */}
             <div className="mb-8">
-              <h2 className="text-2xl font-extrabold tracking-tight">Create Account</h2>
-              <p className="text-[#847F8D] text-sm font-medium mt-1.5">Let's get you set up and ready to go.</p>
-            </div>
-
-            {/* Error Message Display */}
-            {error && (
-              <div className="mb-4 p-3 rounded-lg bg-red-100 border border-red-200 text-red-600 text-sm font-medium">
-                {typeof error === 'string' ? error : "Registration failed"}
-              </div>
-            )}
-
-            <div className="mb-4">
-              <label className="text-xs font-bold text-[#35313F] block mb-1.5 ml-3">Full Name</label>
-              <input
-                type="text" required value={name} onChange={(e) => setName(e.target.value)}
-                className="w-full px-5 py-3 rounded-full bg-white border-none text-[#35313F] placeholder-[#A29EAB] focus:outline-none focus:ring-4 focus:ring-[#D2C9D8] transition-all text-sm font-medium shadow-sm"
-                placeholder="John Doe"
-              />
-            </div>
-
-            <div className="mb-4">
-              <label className="text-xs font-bold text-[#35313F] block mb-1.5 ml-3">Email</label>
-              <input
-                type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-5 py-3 rounded-full bg-white border-none text-[#35313F] placeholder-[#A29EAB] focus:outline-none focus:ring-4 focus:ring-[#D2C9D8] transition-all text-sm font-medium shadow-sm"
-                placeholder="you@example.com"
-              />
-            </div>
-
-            <div className="mb-6 relative">
-              <label className="text-xs font-bold text-[#35313F] block mb-1.5 ml-3">Password</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"} required value={password} onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-5 py-3 rounded-full bg-white border-none text-[#35313F] placeholder-[#A29EAB] focus:outline-none focus:ring-4 focus:ring-[#D2C9D8] transition-all text-sm font-medium pr-10 shadow-sm"
-                  placeholder="Create a password"
-                />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#A29EAB] hover:text-[#35313F] transition-colors">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d={showPassword ? "M15 12a3 3 0 11-6 0 3 3 0 016 0z" : "M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"} />
-                  </svg>
-                </button>
+              <label className="text-[10px] font-black uppercase tracking-widest text-[#847F8D] block mb-4">Choose your Avatar</label>
+              <div className="grid grid-cols-6 gap-3">
+                {AVATAR_OPTIONS.map((url, idx) => (
+                  <button
+                    key={idx} type="button"
+                    onClick={() => setSelectedAvatar(url)}
+                    className={`relative rounded-xl overflow-hidden border-2 transition-all p-1 ${selectedAvatar === url ? "border-[#35313F] bg-white scale-110 shadow-md" : "border-transparent opacity-60 hover:opacity-100"}`}
+                  >
+                    <img src={url} alt="avatar" className="w-full h-full object-cover" />
+                  </button>
+                ))}
               </div>
             </div>
 
-            <button type="submit" className="w-full py-3 rounded-full font-bold text-white text-base bg-[#35313F] hover:bg-[#2A2732] transition-all duration-200 shadow-md">
-              Register
+            <div className="space-y-4">
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-[#847F8D] block mb-1.5 ml-2">Full Name</label>
+                <input required type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full px-5 py-3 rounded-2xl bg-white text-sm font-bold shadow-sm outline-none focus:ring-2 focus:ring-[#D2C9D8]" placeholder="e.g. Ali Khan" />
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-[#847F8D] block mb-1.5 ml-2">Work Email</label>
+                <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-5 py-3 rounded-2xl bg-white text-sm font-bold shadow-sm outline-none focus:ring-2 focus:ring-[#D2C9D8]" placeholder="ali@agency.com" />
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-[#847F8D] block mb-1.5 ml-2">Password</label>
+                <input required type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-5 py-3 rounded-2xl bg-white text-sm font-bold shadow-sm outline-none focus:ring-2 focus:ring-[#D2C9D8]" placeholder="••••••••" />
+              </div>
+            </div>
+
+            <button type="submit" className="w-full mt-8 py-4 bg-[#35313F] text-white rounded-2xl font-bold shadow-lg hover:bg-black transition-all transform active:scale-95">
+              Launch my OS
             </button>
 
-            <p className="text-xs font-medium text-[#847F8D] text-center mt-5">
-              Already have an account? <Link to="/login" className="text-[#35313F] font-bold hover:underline">Log in</Link>
+            <p className="text-center mt-6 text-xs font-bold text-[#847F8D]">
+              Already a member? <Link to="/login" className="text-[#35313F] underline">Sign In</Link>
             </p>
           </form>
         </div>

@@ -11,6 +11,8 @@ import Tasks from "./pages/Tasks.jsx";
 import Clients from "./pages/Clients.jsx";
 import Invoices from "./pages/Invoices.jsx";
 import Profile from "./pages/Profile.jsx";
+import Team from "./pages/Team.jsx";
+import MyTasks from "./pages/MyTasks.jsx";
 
 // Enhanced Protected Route with Loading State
 const ProtectedRoute = ({ children }) => {
@@ -107,6 +109,15 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/team"
+        element={
+          <ProtectedRoute>
+            <Team />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="/my-tasks" element={<MyTasks />} />
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
