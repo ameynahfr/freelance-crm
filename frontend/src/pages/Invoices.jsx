@@ -1,5 +1,4 @@
 import { useEffect, useState, useCallback } from "react";
-import axios from "axios";
 import Sidebar from "../components/Sidebar.jsx";
 import Header from "../components/Header.jsx";
 import { useAuth } from "../hooks/useAuth.jsx";
@@ -8,30 +7,40 @@ import {
   FaSearch,
   FaFilePdf,
   FaCheck,
-  FaReceipt
+  FaReceipt,
+  FaEnvelope,
+  FaSpinner
 } from "react-icons/fa";
 import InvoiceModal from "../components/InvoiceModal.jsx";
 
+// 🚀 API LAYER IMPORTS
+import { 
+  getInvoices, 
+  updateInvoiceStatus, 
+  downloadInvoicePDF, 
+  sendInvoiceEmail as sendEmailApi 
+} from "../api/invoiceApi";
+
 export default function Invoices() {
-  const { token } = useAuth();
+  const { token } = useAuth(); // Still passed to modal if needed, but not used for API calls here
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [sendingEmailId, setSendingEmailId] = useState(null);
 
   const fetchInvoices = useCallback(async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/invoices", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      // 🚀 Clean API Call - Header added automatically by interceptor
+      const res = await getInvoices();
       setInvoices(res.data);
     } catch (err) {
-      console.error("Fetch error:", err);
+      console.error("Invoicing Error:", err);
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     fetchInvoices();
@@ -39,47 +48,57 @@ export default function Invoices() {
 
   const updateStatus = async (id, newStatus) => {
     try {
-      const res = await axios.put(
-        `http://localhost:5000/api/invoices/${id}/status`,
-        { status: newStatus },
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      // 🚀 Using centralized API
+      const res = await updateInvoiceStatus(id, newStatus);
       setInvoices(invoices.map((inv) => (inv._id === id ? res.data.invoice : inv)));
     } catch (err) {
       alert("Status update failed");
     }
   };
 
-  const downloadPDF = async (id, invoiceNumber) => {
+  const handleDownloadPDF = async (id, invoiceNumber) => {
     try {
-      const res = await axios.get(
-        `http://localhost:5000/api/invoices/${id}/pdf`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          responseType: "blob",
-        },
-      );
+      // 🚀 API call already configured with responseType: "blob"
+      const res = await downloadInvoicePDF(id);
+      
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement("a");
       link.href = url;
       link.setAttribute("download", `${invoiceNumber}.pdf`);
       document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
     } catch (err) {
       alert("Failed to download PDF");
     }
   };
 
+  const handleSendEmail = async (id) => {
+    setSendingEmailId(id);
+    try {
+      // 🚀 Centralized Email API
+      await sendEmailApi(id);
+      alert("Invoice sent successfully to the client!");
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to send email. Check client email details.");
+    } finally {
+      setSendingEmailId(null);
+    }
+  };
+
   const filtered = invoices.filter((inv) => {
+    const searchLower = searchTerm.toLowerCase();
+    const clientName = inv.client?.name || inv.project?.client?.name || "";
+
     const matchesSearch =
-      inv.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      inv.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      inv.project?.client?.name?.toLowerCase().includes(searchTerm.toLowerCase()); // Added Client Search
+      (inv.title && inv.title.toLowerCase().includes(searchLower)) ||
+      (inv.invoiceNumber && inv.invoiceNumber.toLowerCase().includes(searchLower)) ||
+      clientName.toLowerCase().includes(searchLower);
+
     const matchesStatus = filter === "all" ? true : inv.status === filter;
     return matchesSearch && matchesStatus;
   });
 
-  // Updated Status Colors (Lavender for Paid)
   const getStatusBadge = (status) => {
     switch (status) {
       case "paid": 
@@ -106,8 +125,6 @@ export default function Invoices() {
           <Header />
 
           <main className="flex-1 overflow-y-auto custom-scrollbar relative">
-            
-            {/* Header Area */}
             <div className="sticky top-0 z-30 bg-[#35313F]/95 backdrop-blur-sm border-b border-[#5B5569]/30">
               <div className="max-w-[1400px] mx-auto w-full px-5 md:px-8 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
                 <div className="w-full md:w-1/3">
@@ -134,7 +151,7 @@ export default function Invoices() {
                     <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A29EAB]" size={10} />
                     <input 
                       type="text" 
-                      placeholder="Search invoices..." 
+                      placeholder="Search..." 
                       value={searchTerm} 
                       onChange={(e) => setSearchTerm(e.target.value)} 
                       className="bg-[#464153] text-white text-xs pl-8 pr-3 py-2.5 rounded-xl border-none outline-none focus:ring-2 focus:ring-[#D2C9D8] w-32 md:w-48 transition-all"
@@ -147,7 +164,6 @@ export default function Invoices() {
               </div>
             </div>
 
-            {/* DATA TABLE LAYOUT */}
             <div className="max-w-[1400px] mx-auto w-full px-5 md:px-8 py-6">
               {filtered.length > 0 ? (
                 <div className="bg-[#464153] rounded-[1.5rem] border border-white/5 overflow-hidden shadow-xl">
@@ -164,47 +180,64 @@ export default function Invoices() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/5">
-                        {filtered.map((inv) => (
-                          <tr key={inv._id} className="hover:bg-[#35313F]/30 transition-colors group">
-                            <td className="px-6 py-4">
-                              <span className="text-xs font-bold text-white font-mono">{inv.invoiceNumber}</span>
-                              <div className="text-[10px] text-[#A29EAB]">{inv.title}</div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="text-xs font-bold text-white">{inv.project?.client?.name || "Unknown Client"}</div>
-                              <div className="text-[10px] text-[#A29EAB]">{inv.project?.title}</div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="text-xs font-medium text-white">{new Date(inv.dueDate).toLocaleDateString()}</div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="text-xs font-bold text-white">${inv.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
-                            </td>
-                            <td className="px-6 py-4">
-                              {getStatusBadge(inv.status)}
-                            </td>
-                            <td className="px-6 py-4 text-right">
-                              <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                {inv.status !== "paid" && (
+                        {filtered.map((inv) => {
+                          const clientName = inv.client?.name || inv.project?.client?.name;
+                          const displayName = clientName ? clientName : "Internal Project";
+
+                          return (
+                            <tr key={inv._id} className="hover:bg-[#35313F]/30 transition-colors group">
+                              <td className="px-6 py-4">
+                                <span className="text-xs font-bold text-white font-mono">{inv.invoiceNumber}</span>
+                                <div className="text-[10px] text-[#A29EAB]">{inv.title}</div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className={`text-xs font-bold ${clientName ? 'text-white' : 'text-[#847F8D] italic'}`}>
+                                  {displayName}
+                                </div>
+                                <div className="text-[10px] text-[#A29EAB]">{inv.project?.title || "No Project Linked"}</div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="text-xs font-medium text-white">{new Date(inv.dueDate).toLocaleDateString()}</div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="text-xs font-bold text-white">${(inv.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                              </td>
+                              <td className="px-6 py-4">
+                                {getStatusBadge(inv.status)}
+                              </td>
+                              <td className="px-6 py-4 text-right">
+                                <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  {inv.status !== "paid" && (
+                                    <button 
+                                      onClick={() => updateStatus(inv._id, "paid")} 
+                                      className="p-2 bg-[#35313F] text-[#D2C9D8] rounded-lg hover:bg-[#D2C9D8]/20 transition"
+                                      title="Mark as Paid"
+                                    >
+                                      <FaCheck size={12} />
+                                    </button>
+                                  )}
+                                  
                                   <button 
-                                    onClick={() => updateStatus(inv._id, "paid")} 
-                                    className="p-2 bg-[#35313F] text-[#D2C9D8] rounded-lg hover:bg-[#D2C9D8]/20 transition"
-                                    title="Mark as Paid"
+                                    onClick={() => handleSendEmail(inv._id)} 
+                                    disabled={sendingEmailId === inv._id}
+                                    className="p-2 bg-[#35313F] text-blue-400 rounded-lg hover:bg-blue-500/10 transition disabled:opacity-50"
+                                    title="Send Email"
                                   >
-                                    <FaCheck size={12} />
+                                    {sendingEmailId === inv._id ? <FaSpinner className="animate-spin" size={12} /> : <FaEnvelope size={12} />}
                                   </button>
-                                )}
-                                <button 
-                                  onClick={() => downloadPDF(inv._id, inv.invoiceNumber)} 
-                                  className="p-2 bg-[#35313F] text-[#A29EAB] rounded-lg hover:text-white hover:bg-white/10 transition"
-                                  title="Download PDF"
-                                >
-                                  <FaFilePdf size={12} />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
+
+                                  <button 
+                                    onClick={() => handleDownloadPDF(inv._id, inv.invoiceNumber)} 
+                                    className="p-2 bg-[#35313F] text-[#A29EAB] rounded-lg hover:text-white hover:bg-white/10 transition"
+                                    title="Download PDF"
+                                  >
+                                    <FaFilePdf size={12} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>

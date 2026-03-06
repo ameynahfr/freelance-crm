@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import axios from "axios";
 import Sidebar from "../components/Sidebar.jsx";
 import Header from "../components/Header.jsx";
 import { useAuth } from "../hooks/useAuth.jsx";
@@ -15,6 +14,9 @@ import {
 } from "react-icons/fa";
 import ClientModal from "../components/ClientModal.jsx";
 
+// 🚀 API LAYER IMPORTS
+import { getClients, deleteClient as deleteClientApi } from "../api/clientApi";
+
 export default function Clients() {
   const { token } = useAuth();
   const [clients, setClients] = useState([]);
@@ -25,30 +27,28 @@ export default function Clients() {
 
   const fetchClients = useCallback(async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/clients", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      // 🚀 Clean API Call - Headers handled by interceptor
+      const res = await getClients();
       setClients(res.data);
     } catch (err) {
-      console.error("Fetch clients failed:", err);
+      console.error("Directory sync error:", err);
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     fetchClients();
   }, [fetchClients]);
 
-  const deleteClient = async (id) => {
-    if (!window.confirm("Delete client? This will fail if they have active projects.")) return;
+  const handleDelete = async (id) => {
+    if (!window.confirm("Delete client? This will fail if they have active mandates.")) return;
     try {
-      await axios.delete(`http://localhost:5000/api/clients/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      // 🚀 Centralized Delete API
+      await deleteClientApi(id);
       setClients(clients.filter((c) => c._id !== id));
     } catch (err) {
-      alert(err.response?.data?.message || "Delete failed");
+      alert(err.response?.data?.message || "Internal removal failed");
     }
   };
 
@@ -61,41 +61,41 @@ export default function Clients() {
   if (loading)
     return (
       <div className="h-screen w-full flex items-center justify-center bg-[#D2C9D8]">
-        <div className="bg-[#35313F] px-5 py-2.5 rounded-full text-white text-sm font-medium animate-pulse">Loading Directory...</div>
+        <div className="bg-[#35313F] px-6 py-3 rounded-full text-white text-sm font-medium animate-pulse">
+          Indexing Directory...
+        </div>
       </div>
     );
 
   return (
     <div className="h-screen w-full bg-[#D2C9D8] p-0 md:p-3 lg:p-4 font-sans text-white overflow-hidden flex">
-      <div className="flex flex-1 bg-[#35313F] rounded-none md:rounded-[1.25rem] lg:rounded-[1.5rem] shadow-xl overflow-hidden relative">
+      <div className="flex flex-1 bg-[#35313F] rounded-none md:rounded-[1.5rem] shadow-xl overflow-hidden relative">
         <Sidebar />
         <div className="flex-1 flex flex-col relative overflow-hidden">
           <Header />
           <main className="flex-1 overflow-y-auto custom-scrollbar relative">
             
-            {/* Sticky Header & Search */}
             <div className="sticky top-0 z-30 bg-[#35313F]/95 backdrop-blur-sm border-b border-[#5B5569]/30">
               <div className="max-w-[1600px] mx-auto w-full px-5 md:px-8 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-                <h1 className="text-xl md:text-2xl font-bold tracking-tight text-white">Clients</h1>
+                <div>
+                  <h1 className="text-xl md:text-2xl font-bold tracking-tight text-white">Clients</h1>
+                  <p className="text-[10px] text-[#A29EAB] uppercase font-bold tracking-widest mt-0.5">Global Directory</p>
+                </div>
 
                 <div className="flex items-center gap-3 w-full sm:w-auto">
-                  {/* Styled Search Bar */}
-                  <div className="relative flex-1 sm:w-64 bg-[#464153] rounded-full group focus-within:ring-2 focus-within:ring-[#D2C9D8] transition-all">
-                    <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-[#A29EAB] group-focus-within:text-white transition-colors" size={12} />
+                  <div className="relative flex-1 sm:w-64 bg-[#464153] rounded-full focus-within:ring-1 focus-within:ring-[#D2C9D8] transition-all">
+                    <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-[#A29EAB]" size={10} />
                     <input
                       type="text"
-                      placeholder="Search directory..."
+                      placeholder="Filter directory..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full bg-transparent border-none rounded-full pl-10 pr-4 py-2.5 text-xs text-white placeholder-[#A29EAB] focus:ring-0 outline-none"
+                      className="w-full bg-transparent border-none rounded-full pl-10 pr-4 py-2.5 text-xs text-white placeholder-[#A29EAB] outline-none"
                     />
                   </div>
                   
                   <button
-                    onClick={() => {
-                      setEditingClient(null);
-                      setShowModal(true);
-                    }}
+                    onClick={() => { setEditingClient(null); setShowModal(true); }}
                     className="bg-white text-[#35313F] px-5 py-2.5 rounded-full text-xs font-bold flex items-center gap-2 hover:bg-gray-100 transition shadow-sm"
                   >
                     <FaPlus /> <span className="hidden sm:inline">Add Client</span>
@@ -104,75 +104,61 @@ export default function Clients() {
               </div>
             </div>
 
-            {/* Content Area */}
             <div className="max-w-[1600px] mx-auto w-full px-5 md:px-8 py-6">
               {filtered.length === 0 ? (
                 <div className="py-20 flex flex-col items-center justify-center text-center bg-[#464153]/30 rounded-[2rem] border-2 border-dashed border-white/5">
-                  <div className="w-16 h-16 bg-[#35313F] rounded-full flex items-center justify-center mb-4 shadow-inner">
-                    <FaUserFriends className="text-[#A29EAB] text-2xl" />
-                  </div>
-                  <h3 className="text-white font-bold mb-1">No clients found</h3>
-                  <p className="text-[#A29EAB] text-xs">Try adjusting your search or add a new client.</p>
+                  <FaUserFriends className="text-[#A29EAB]/20 text-4xl mb-4" />
+                  <h3 className="text-white font-bold mb-1">No matches found</h3>
+                  <p className="text-[#A29EAB] text-[10px] uppercase font-bold tracking-widest">Expansion Required</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                   {filtered.map((client) => (
                     <div
                       key={client._id}
-                      className="bg-[#464153] p-6 rounded-[1.8rem] border border-white/5 hover:border-white/10 transition-all group flex flex-col justify-between shadow-md relative overflow-hidden"
+                      className="bg-[#464153] p-6 rounded-[1.8rem] border border-white/5 hover:border-[#D2C9D8]/30 transition-all group flex flex-col justify-between shadow-md relative overflow-hidden"
                     >
-                      {/* Decorative gradient blob */}
-                      <div className="absolute -top-10 -right-10 w-24 h-24 bg-[#5B5569]/20 rounded-full blur-2xl group-hover:bg-[#5B5569]/30 transition-colors" />
-
                       <div>
                         <div className="flex justify-between items-start mb-5 relative z-10">
-                          {/* Avatar Circle */}
-                          <div className="w-12 h-12 bg-[#35313F] rounded-2xl flex items-center justify-center text-xl font-bold text-[#D2C9D8] shadow-inner border border-white/5">
+                          <div className="w-12 h-12 bg-[#35313F] rounded-2xl flex items-center justify-center text-xl font-bold text-[#D2C9D8] border border-white/5">
                             {client.name.charAt(0).toUpperCase()}
                           </div>
                           
-                          {/* Actions (Visible on Hover) */}
                           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-[#35313F] p-1 rounded-lg border border-white/5 shadow-sm">
                             <button
-                              onClick={() => {
-                                setEditingClient(client);
-                                setShowModal(true);
-                              }}
+                              onClick={() => { setEditingClient(client); setShowModal(true); }}
                               className="p-2 text-[#A29EAB] hover:text-white transition-colors"
-                              title="Edit"
                             >
                               <FaEdit size={12} />
                             </button>
-                            <div className="w-px h-full bg-white/10 mx-0.5" />
                             <button
-                              onClick={() => deleteClient(client._id)}
+                              onClick={() => handleDelete(client._id)}
                               className="p-2 text-[#A29EAB] hover:text-rose-400 transition-colors"
-                              title="Delete"
                             >
                               <FaTrash size={12} />
                             </button>
                           </div>
                         </div>
 
-                        <h3 className="text-lg font-bold text-white mb-4 tracking-tight leading-snug">
+                        <h3 className="text-lg font-bold text-white mb-4 tracking-tight">
                           {client.name}
                         </h3>
 
                         <div className="space-y-3 mb-6">
-                          <div className="flex items-center gap-3 text-xs text-[#A29EAB] font-medium group-hover:text-white/80 transition-colors">
-                            <div className="w-6 flex justify-center"><FaEnvelope size={12} /></div>
-                            <span className="truncate">{client.email || "No email"}</span>
+                          <div className="flex items-center gap-3 text-xs text-[#A29EAB] font-medium">
+                            <div className="w-6 flex justify-center"><FaEnvelope size={10} /></div>
+                            <span className="truncate">{client.email || "Offline Account"}</span>
                           </div>
-                          <div className="flex items-center gap-3 text-xs text-[#A29EAB] font-medium group-hover:text-white/80 transition-colors">
-                            <div className="w-6 flex justify-center"><FaPhone size={12} /></div>
-                            <span>{client.phone || "No phone"}</span>
+                          <div className="flex items-center gap-3 text-xs text-[#A29EAB] font-medium">
+                            <div className="w-6 flex justify-center"><FaPhone size={10} /></div>
+                            <span>{client.phone || "No Direct Line"}</span>
                           </div>
                         </div>
                       </div>
 
                       <div className="pt-4 border-t border-white/5 flex justify-between items-center">
-                        <span className="flex items-center gap-2 text-[10px] uppercase font-bold text-[#A29EAB] tracking-widest">
-                          <FaCalendarAlt size={10} /> {new Date(client.createdAt).toLocaleDateString()}
+                        <span className="flex items-center gap-2 text-[9px] uppercase font-bold text-[#A29EAB] tracking-[0.2em]">
+                          <FaCalendarAlt size={10} /> Verified: {new Date(client.createdAt).toLocaleDateString()}
                         </span>
                       </div>
                     </div>
@@ -188,7 +174,7 @@ export default function Clients() {
         <ClientModal
           token={token}
           editData={editingClient}
-          onClose={() => setShowModal(false)}
+          onClose={() => { setShowModal(false); setEditingClient(null); }}
           onUpdated={fetchClients}
         />
       )}

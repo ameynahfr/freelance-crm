@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import axios from "axios";
 import Sidebar from "../components/Sidebar.jsx";
 import Header from "../components/Header.jsx";
 import { useAuth } from "../hooks/useAuth.jsx";
@@ -12,281 +11,183 @@ import {
   FaPlus,
   FaEdit,
   FaArrowLeft,
+  FaCalendarAlt,
+  FaSpinner,
   FaUser,
-  FaMoneyBillWave,
-  FaCalendarAlt
+  FaCircle
 } from "react-icons/fa";
 import TaskModal from "../components/TaskModal.jsx";
 import ProjectModal from "../components/ProjectModal.jsx";
 
+// 🚀 API LAYER IMPORTS
+import { getProjectById, deleteProject as deleteProjectApi } from "../api/projectApi";
+import { getProjectTasks, updateTask, deleteTask as deleteTaskApi } from "../api/taskApi";
+
 export default function ProjectDetails() {
   const { id } = useParams(); 
-  const { token, user } = useAuth(); // 👈 Added 'user' to check roles
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const [project, setProject] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // Modals state
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
 
-  // 🔒 RBAC Check: Only Owners and Managers can manage project structure/finances
-  const canManage = user?.role === "owner" || user?.role === "manager";
+  const isManagement = user?.role === "owner" || user?.role === "manager";
 
-  const fetchData = useCallback(async () => {
+  const fetchProjectData = useCallback(async () => {
     try {
-      const headers = { Authorization: `Bearer ${token}` };
       const [projRes, tasksRes] = await Promise.all([
-        axios.get(`http://localhost:5000/api/projects/${id}`, { headers }),
-        axios.get(`http://localhost:5000/api/tasks/project/${id}`, { headers })
+        getProjectById(id),
+        getProjectTasks(id)
       ]);
 
       setProject(projRes.data);
-      setTasks(tasksRes.data);
+      const cleanTasks = tasksRes.data.map(t => ({
+        ...t,
+        _id: (t._id?.$oid || t._id || "").toString()
+      }));
+      setTasks(cleanTasks);
     } catch (err) {
-      console.error("Fetch error:", err);
+      console.error("Master Sync Failure:", err);
     } finally {
       setLoading(false);
     }
-  }, [id, token]);
+  }, [id]);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  useEffect(() => { fetchProjectData(); }, [fetchProjectData]);
 
-  // --- Actions ---
-
-  const deleteProject = async () => {
-    if (!window.confirm("Are you sure? This will delete the project and ALL its tasks.")) return;
-    try {
-      await axios.delete(`http://localhost:5000/api/projects/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      navigate("/projects");
-    } catch (err) {
-      alert("Failed to delete project");
-    }
-  };
-
-  const toggleTaskStatus = async (task) => {
-    const nextStatus = task.status === "done" ? "todo" : "done";
-    const updatedTasks = tasks.map(t => t._id === task._id ? { ...t, status: nextStatus } : t);
-    setTasks(updatedTasks);
+  const handleToggleStatus = async (task) => {
+    let nextStatus = task.status === "todo" ? "in-progress" : task.status === "in-progress" ? "done" : "todo";
+    
+    setTasks(prev => prev.map(t => t._id === task._id ? { ...t, status: nextStatus } : t));
 
     try {
-      await axios.put(
-        `http://localhost:5000/api/tasks/${task._id}`,
-        { status: nextStatus },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      fetchData(); 
+      await updateTask(task._id, { status: nextStatus });
+      fetchProjectData(); 
     } catch (err) {
-      console.error("Status update failed");
-      setTasks(tasks);
-    }
-  };
-
-  const deleteTask = async (taskId) => {
-    if (!window.confirm("Delete this task?")) return;
-    try {
-      await axios.delete(`http://localhost:5000/api/tasks/${taskId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setTasks(tasks.filter((t) => t._id !== taskId));
-      fetchData();
-    } catch (err) {
-      console.error("Delete failed");
+      fetchProjectData(); 
     }
   };
 
   if (loading) return (
     <div className="h-screen flex items-center justify-center bg-[#D2C9D8]">
-      <div className="bg-[#35313F] px-6 py-3 rounded-full text-white text-sm font-medium animate-pulse">Loading Project...</div>
+      <div className="bg-[#35313F] px-6 py-3 rounded-full text-white text-sm animate-pulse">Syncing Mandate Details...</div>
     </div>
   );
 
-  if (!project) return null;
-
   return (
     <div className="h-screen w-full bg-[#D2C9D8] p-0 md:p-3 lg:p-4 font-sans text-white overflow-hidden flex">
-      <div className="flex flex-1 bg-[#35313F] rounded-none md:rounded-[1.5rem] shadow-xl overflow-hidden relative">
+      <div className="flex flex-1 bg-[#35313F] rounded-none md:rounded-[1.5rem] shadow-xl overflow-hidden relative border border-white/5">
         <Sidebar />
         <div className="flex-1 flex flex-col relative overflow-hidden">
           <Header />
 
-          <main className="flex-1 overflow-y-auto custom-scrollbar relative">
-            
-            <div className="sticky top-0 z-30 bg-[#35313F]/95 backdrop-blur-sm border-b border-[#5B5569]/30">
-              <div className="max-w-[1400px] mx-auto w-full px-5 md:px-8 py-4 flex justify-between items-center">
-                <div className="flex items-center gap-4">
-                  <Link to="/projects" className="p-2 bg-[#464153] rounded-full text-[#A29EAB] hover:text-white transition">
-                    <FaArrowLeft size={12} />
-                  </Link>
-                  <div>
-                    <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight">
-                      {project.title}
-                    </h1>
-                    <p className="text-[10px] text-[#A29EAB] font-bold uppercase tracking-widest mt-0.5">
-                      {project.status} Project
-                    </p>
-                  </div>
-                </div>
-
-                {/* 🔒 ACTIONS: Only visible to Managers/Owners */}
-                {canManage && (
+          <main className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-10">
+            <div className="max-w-5xl mx-auto space-y-8">
+              
+              <div className="flex items-center justify-between">
+                <Link to="/projects" className="flex items-center gap-2 text-[#A29EAB] hover:text-white transition-colors text-xs font-bold uppercase tracking-widest">
+                  <FaArrowLeft size={10} /> Back to Mandates
+                </Link>
+                {isManagement && (
                   <div className="flex gap-2">
-                    <button onClick={() => setIsProjectModalOpen(true)} className="p-2.5 bg-[#464153] text-white rounded-xl hover:bg-[#5B5569] transition" title="Edit Project">
+                    <button onClick={() => setIsProjectModalOpen(true)} className="p-3 bg-[#464153] rounded-xl text-[#A29EAB] hover:text-white transition-colors">
                       <FaEdit size={14} />
-                    </button>
-                    <button onClick={deleteProject} className="p-2.5 bg-[#464153] text-rose-400 rounded-xl hover:bg-rose-500/20 transition" title="Delete Project">
-                      <FaTrash size={14} />
                     </button>
                   </div>
                 )}
               </div>
-            </div>
 
-            <div className="max-w-[1400px] mx-auto w-full px-5 md:px-8 py-6 space-y-6">
-              
-              <div className="bg-[#464153] rounded-[2rem] p-6 border border-white/5 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-[#D2C9D8]/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+              <div className="bg-[#464153] rounded-[2.5rem] p-8 border border-white/5 relative overflow-hidden shadow-2xl">
+                <div className="relative z-10">
+                  <h1 className="text-4xl font-black tracking-tight mb-2">{project?.title}</h1>
+                  <p className="text-[#A29EAB] text-sm leading-relaxed max-w-2xl mb-8">{project?.description}</p>
+                  
+                  <div className="flex flex-wrap gap-4">
+                    <div className="bg-[#35313F] px-4 py-2 rounded-xl border border-white/5 flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-[#D2C9D8] flex items-center justify-center text-[#35313F] text-xs font-bold shadow-lg">
+                        {project?.client?.name?.charAt(0) || "S"}
+                      </div>
+                      <span className="text-xs font-bold">{project?.client?.name || "Self Project"}</span>
+                    </div>
+                    <div className="bg-[#35313F] px-4 py-2 rounded-xl border border-white/5 flex items-center gap-3 text-[#A29EAB]">
+                      <FaCalendarAlt size={12} className="text-indigo-400" />
+                      <span className="text-xs font-bold">{project?.deadline ? new Date(project.deadline).toLocaleDateString() : "No Deadline"}</span>
+                    </div>
+                  </div>
+                </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
-                  <div className="md:col-span-2 space-y-4">
-                    <div>
-                      <h3 className="text-xs font-bold text-[#A29EAB] uppercase tracking-wider mb-2">Description</h3>
-                      <p className="text-sm text-white/90 leading-relaxed">
-                        {project.description || "No description provided."}
-                      </p>
-                    </div>
-                    
-                    <div className="flex flex-wrap gap-4 pt-2">
-                      <div className="bg-[#35313F] px-4 py-2 rounded-xl flex items-center gap-3 border border-white/5">
-                        <div className="w-8 h-8 rounded-full bg-[#D2C9D8] flex items-center justify-center text-[#35313F] text-xs font-bold">
-                          {project.client?.name ? project.client.name.charAt(0) : "S"}
-                        </div>
-                        <div>
-                          <p className="text-[9px] text-[#A29EAB] font-bold uppercase">Client</p>
-                          <p className="text-xs font-bold text-white">{project.client?.name || "Self Project"}</p>
-                        </div>
-                      </div>
-
-                      <div className="bg-[#35313F] px-4 py-2 rounded-xl flex items-center gap-3 border border-white/5">
-                        <div className="w-8 h-8 rounded-full bg-[#D2C9D8]/20 text-[#D2C9D8] flex items-center justify-center text-xs font-bold">
-                          <FaCalendarAlt />
-                        </div>
-                        <div>
-                          <p className="text-[9px] text-[#A29EAB] font-bold uppercase">Deadline</p>
-                          <p className="text-xs font-bold text-white">
-                            {project.deadline ? new Date(project.deadline).toLocaleDateString() : "No Date"}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* 🔒 BUDGET: Hidden from regular members */}
-                      {canManage && project.budget > 0 && (
-                        <div className="bg-[#35313F] px-4 py-2 rounded-xl flex items-center gap-3 border border-white/5">
-                          <div className="w-8 h-8 rounded-full bg-[#D2C9D8]/20 text-[#D2C9D8] flex items-center justify-center text-xs font-bold">
-                            <FaMoneyBillWave />
-                          </div>
-                          <div>
-                            <p className="text-[9px] text-[#A29EAB] font-bold uppercase">Budget</p>
-                            <p className="text-xs font-bold text-white">${project.budget.toLocaleString()}</p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col justify-center bg-[#35313F]/50 p-5 rounded-2xl border border-white/5">
-                    <div className="flex justify-between items-end mb-2">
-                      <span className="text-xs font-bold text-[#A29EAB] uppercase">Completion</span>
-                      <span className="text-2xl font-bold text-white">{project.progress}%</span>
-                    </div>
-                    <div className="w-full bg-[#35313F] h-2 rounded-full overflow-hidden mb-2">
-                      <div 
-                        className="bg-[#D2C9D8] h-full rounded-full transition-all duration-1000 ease-out" 
-                        style={{ width: `${project.progress}%` }} 
-                      />
-                    </div>
-                    <p className="text-[10px] text-[#A29EAB] text-right">Based on {tasks.length} tasks</p>
-                  </div>
+                {/* 🎨 ANIMATED PROGRESS: Added animate-pulse for a subtle 'breathing' effect */}
+                <div className="absolute right-10 bottom-10 hidden lg:block text-right">
+                   <p className="text-[10px] font-black text-[#A29EAB] uppercase tracking-widest mb-1">Completion</p>
+                   <p className="text-6xl font-black text-emerald-400 drop-shadow-[0_0_20px_rgba(52,211,153,0.4)] animate-[pulse_3s_ease-in-out_infinite]">
+                     {project?.progress}%
+                   </p>
                 </div>
               </div>
 
               <div>
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-bold text-white">Tasks</h2>
-                  
-                  {/* 🔒 NEW TASK: Only leadership can add tasks to a project board */}
-                  {canManage && (
-                    <button 
-                      onClick={() => { setEditingTask(null); setIsTaskModalOpen(true); }}
-                      className="bg-white text-[#35313F] px-4 py-2 rounded-xl flex items-center gap-2 text-xs font-bold hover:bg-gray-100 transition shadow-sm"
-                    >
-                      <FaPlus /> New Task
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-bold">Project Tasks <span className="text-[#A29EAB] text-sm font-normal ml-2">({tasks.length})</span></h2>
+                  {isManagement && (
+                    <button onClick={() => { setEditingTask(null); setIsTaskModalOpen(true); }} className="bg-white text-[#35313F] px-5 py-2.5 rounded-xl font-bold text-xs shadow-lg hover:bg-[#D2C9D8] transition-all">
+                      + Add Task
                     </button>
                   )}
                 </div>
 
-                {tasks.length === 0 ? (
-                  <div className="py-12 text-center bg-[#464153]/30 rounded-[2rem] border border-dashed border-white/10">
-                    <p className="text-[#A29EAB] text-sm">No tasks assigned yet.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {tasks.map((task) => (
-                      <div key={task._id} className={`group flex items-center justify-between p-4 rounded-2xl border transition-all duration-200 ${task.status === "done" ? "bg-[#35313F]/50 border-white/5 opacity-60" : "bg-[#464153] border-transparent hover:border-white/10"}`}>
-                        <div className="flex items-center gap-4 flex-1">
-                          <button onClick={() => toggleTaskStatus(task)} className={`text-xl transition-transform active:scale-90 ${task.status === "done" ? "text-[#D2C9D8]" : "text-[#A29EAB] hover:text-white"}`}>
-                            {task.status === "done" ? <FaCheckCircle /> : <FaRegCircle />}
-                          </button>
+                <div className="space-y-3">
+                  {tasks.map(task => (
+                    <div key={task._id} className="flex items-center gap-4 p-4 rounded-2xl bg-[#464153]/50 border border-white/5 group hover:bg-[#464153] hover:border-[#D2C9D8]/20 transition-all">
+                      
+                      {/* 🎨 COLORED STATUS ICONS */}
+                      <button onClick={() => handleToggleStatus(task)} className={`text-xl transition-all ${
+                        task.status === 'done' ? 'text-emerald-400' : 
+                        task.status === 'in-progress' ? 'text-blue-400' : 'text-[#A29EAB] hover:text-white' 
+                      }`}>
+                        {task.status === 'done' ? <FaCheckCircle className="drop-shadow-[0_0_8px_rgba(52,211,153,0.4)]" /> : 
+                         task.status === 'in-progress' ? <FaSpinner className="animate-spin drop-shadow-[0_0_8px_rgba(96,165,250,0.6)]" /> :
+                         <FaRegCircle />}
+                      </button>
+                      
+                      <div className="flex-1 min-w-0">
+                        <h4 className={`text-sm font-bold truncate ${task.status === 'done' ? 'line-through text-[#A29EAB]' : 'text-white'}`}>
+                          {task.title}
+                        </h4>
+                        <div className="flex items-center gap-4 mt-1.5">
                           
-                          <div>
-                            <h3 className={`text-sm font-semibold ${task.status === "done" ? "line-through text-[#A29EAB]" : "text-white"}`}>{task.title}</h3>
-                            
-                            <div className="flex items-center gap-3 mt-1.5">
-                              <div className="flex items-center gap-1.5 text-[10px] text-[#A29EAB]">
-                                <FaClock size={10} />
-                                {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "No Date"}
-                              </div>
+                          {/* 🎨 AGENT NAME POP: Colored badge for assigned members */}
+                          <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-lg border text-[9px] font-black uppercase tracking-widest ${
+                            task.assignedTo ? 'bg-red-500/10 text-indigo-300 border-indigo-500/20' : 'text-[#A29EAB] border-transparent'
+                          }`}>
+                             <FaUser size={8} className={task.assignedTo ? 'text-indigo-400' : ''} /> 
+                             {task.assignedTo?.name || "Unassigned"}
+                          </div>
 
-                              {task.assignedTo ? (
-                                <div className="flex items-center gap-1.5 bg-[#35313F] px-2 py-0.5 rounded-lg border border-white/5" title={`Assigned to ${task.assignedTo.name}`}>
-                                  <div className="w-4 h-4 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-[9px] font-bold text-white">
-                                    {task.assignedTo.name.charAt(0).toUpperCase()}
-                                  </div>
-                                  <span className="text-[10px] text-white/80 font-medium truncate max-w-[80px]">
-                                    {task.assignedTo.name.split(" ")[0]}
-                                  </span>
-                                </div>
-                              ) : (
-                                <div className="flex items-center gap-1 text-[10px] text-[#A29EAB]/50 italic">
-                                  <FaUser size={8} /> Unassigned
-                                </div>
-                              )}
-                            </div>
+                          <div className="flex items-center gap-1.5 text-[9px] font-bold text-[#A29EAB] uppercase tracking-widest text-red-300">
+                             <FaClock size={8} /> {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "No Date"}
                           </div>
                         </div>
-
-                        {/* 🔒 TASK ACTIONS: Only visible to Managers/Owners */}
-                        {canManage && (
-                          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => { setEditingTask(task); setIsTaskModalOpen(true); }} className="p-2 bg-[#35313F] rounded-lg text-[#A29EAB] hover:text-white">
-                              <FaEdit size={12} />
-                            </button>
-                            <button onClick={() => deleteTask(task._id)} className="p-2 bg-[#35313F] rounded-lg text-[#A29EAB] hover:text-rose-400">
-                              <FaTrash size={12} />
-                            </button>
-                          </div>
-                        )}
                       </div>
-                    ))}
-                  </div>
-                )}
+
+                      <div className="hidden sm:block">
+                        <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-lg border flex items-center gap-1.5 tracking-widest ${
+                          task.status === 'done' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 
+                          task.status === 'todo' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
+                          task.status === 'in-progress' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                          'bg-[#35313F] text-[#A29EAB] border-white/5'
+                        }`}>
+                          {task.status === 'in-progress' && <FaCircle className="text-[6px] animate-pulse" />}
+                          {task.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
             </div>
@@ -294,24 +195,8 @@ export default function ProjectDetails() {
         </div>
       </div>
 
-      {isTaskModalOpen && (
-        <TaskModal
-          projectId={id}
-          token={token}
-          editData={editingTask}
-          onClose={() => { setIsTaskModalOpen(false); setEditingTask(null); }}
-          onCreated={() => fetchData()}
-        />
-      )}
-
-      {isProjectModalOpen && (
-        <ProjectModal
-          token={token}
-          editData={project}
-          onClose={() => setIsProjectModalOpen(false)}
-          onCreated={() => fetchData()}
-        />
-      )}
+      {isTaskModalOpen && <TaskModal projectId={id} editData={editingTask} onClose={() => { setIsTaskModalOpen(false); setEditingTask(null); }} onCreated={fetchProjectData} />}
+      {isProjectModalOpen && <ProjectModal editData={project} onClose={() => setIsProjectModalOpen(false)} onUpdated={fetchProjectData} />}
     </div>
   );
 }

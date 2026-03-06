@@ -1,7 +1,5 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useDispatch } from "react-redux"; 
-import { logout } from "../redux/authSlice"; 
-import { useAuth } from "../hooks/useAuth"; // Import useAuth to check role
+import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth"; 
 import {
   FaThLarge,
   FaProjectDiagram,
@@ -18,17 +16,10 @@ import { useState } from "react";
 
 export default function Sidebar() {
   const location = useLocation();
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
-  const { user } = useAuth(); // Get logged-in user details
+  const { user, logout } = useAuth(); // 🚀 Use logout from the hook
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleLogout = () => {
-    dispatch(logout()); 
-    navigate("/login");
-  };
-
-  // Base Menu (For everyone)
+  // Base Menu (Accessible by all agents)
   const menuItems = [
     { path: "/dashboard", label: "Overview", icon: <FaThLarge /> },
     { path: "/team", label: "Agency Team", icon: <FaUsers /> },
@@ -36,8 +27,8 @@ export default function Sidebar() {
     { path: "/my-tasks", label: "My Workload", icon: <FaTasks /> },
   ];
 
-  // 🔒 RESTRICTED ITEMS: Only for Owners/Managers
-  if (user?.role !== "member") {
+  // 🔒 SECURITY: Restrict Invoices and Clients to Management only
+  if (user?.role === "owner" || user?.role === "manager") {
     menuItems.push(
       { path: "/clients", label: "Clients", icon: <FaUserFriends /> },
       { path: "/invoices", label: "Invoices", icon: <FaFileInvoiceDollar /> }
@@ -50,7 +41,7 @@ export default function Sidebar() {
     <>
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="md:hidden fixed top-4 left-4 z-50 p-2 bg-[#35313F] text-white rounded-xl shadow-lg border border-white/10 hover:bg-[#464153] transition-colors"
+        className="md:hidden fixed top-4 left-4 z-50 p-2 bg-[#35313F] text-white rounded-xl shadow-lg border border-white/10"
       >
         {isOpen ? <FaTimes /> : <FaBars />}
       </button>
@@ -64,7 +55,7 @@ export default function Sidebar() {
       >
         <div className="p-8 pb-4">
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-8 h-8 bg-[#D2C9D8] rounded-lg flex items-center justify-center text-[#35313F] font-black text-xl shadow-inner">F</div>
+            <div className="w-8 h-8 bg-[#D2C9D8] rounded-lg flex items-center justify-center text-[#35313F] font-black text-xl">F</div>
             <h1 className="text-xl font-bold text-white tracking-tight">Freelance<span className="text-[#A29EAB]">OS</span></h1>
           </div>
           <div className="h-px w-full bg-gradient-to-r from-transparent via-[#5B5569]/50 to-transparent" />
@@ -77,16 +68,16 @@ export default function Sidebar() {
               to={item.path}
               onClick={() => setIsOpen(false)} 
               className={`
-                flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-200 group relative overflow-hidden
+                flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-200 group
                 ${isActive(item.path) 
                   ? "bg-[#D2C9D8] text-[#35313F] shadow-lg shadow-[#D2C9D8]/20 translate-x-1" 
                   : "text-[#A29EAB] hover:bg-white/5 hover:text-white hover:translate-x-1"}
               `}
             >
-              <span className={`text-lg relative z-10 ${isActive(item.path) ? "scale-110" : "group-hover:scale-110"} transition-transform duration-200`}>
+              <span className={`text-lg transition-transform ${isActive(item.path) ? "scale-110" : "group-hover:scale-110"}`}>
                 {item.icon}
               </span>
-              <span className="relative z-10">{item.label}</span>
+              <span>{item.label}</span>
             </Link>
           ))}
         </nav>
@@ -96,7 +87,7 @@ export default function Sidebar() {
             to="/profile"
             onClick={() => setIsOpen(false)}
             className={`
-              flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-200
+              flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all
               ${isActive("/profile") 
                 ? "bg-[#464153] text-white border border-white/10 shadow-md" 
                 : "text-[#A29EAB] hover:bg-white/5 hover:text-white"}
@@ -106,7 +97,7 @@ export default function Sidebar() {
           </Link>
 
           <button
-            onClick={handleLogout}
+            onClick={logout}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 transition-colors"
           >
             <FaSignOutAlt /> Logout

@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
+import { useDispatch } from "react-redux";
+import { register } from "../redux/authSlice";
 import { useAuth } from "../hooks/useAuth.jsx";
 import { Link, useNavigate } from "react-router-dom";
 
-// 🚀 Curated Cool Avatars
 const AVATAR_OPTIONS = [
   "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
   "https://api.dicebear.com/7.x/bottts/svg?seed=Aneka",
@@ -13,12 +14,14 @@ const AVATAR_OPTIONS = [
 ];
 
 export default function Register() {
-  const { register, error, isAuthenticated } = useAuth();
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { isAuthenticated, loading, error } = useAuth();
+  
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [selectedAvatar, setSelectedAvatar] = useState(AVATAR_OPTIONS[0]);
-  const navigate = useNavigate();
+  const [selectedAvatar, setSelectedAvatar] = useState(AVATAR_OPTIONS[1]);
 
   useEffect(() => {
     if (isAuthenticated) navigate("/dashboard");
@@ -26,8 +29,16 @@ export default function Register() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const result = await register({ name, email, password, profilePic: selectedAvatar });
-    if (result.meta.requestStatus === 'fulfilled') navigate("/dashboard");
+    const result = await dispatch(register({ 
+      name, 
+      email, 
+      password, 
+      profilePic: selectedAvatar 
+    }));
+    
+    if (result.meta.requestStatus === 'fulfilled') {
+      navigate("/dashboard");
+    }
   };
 
   return (
@@ -55,9 +66,15 @@ export default function Register() {
             <h2 className="text-3xl font-black mb-2">Create Account</h2>
             <p className="text-[#847F8D] mb-8 font-medium">Join the agency network in seconds.</p>
 
+            {error && (
+              <div className="mb-4 p-3 rounded-lg bg-red-100 border border-red-200 text-red-600 text-xs font-bold">
+                {typeof error === 'string' ? error : "Registration failed."}
+              </div>
+            )}
+
             {/* AVATAR PICKER */}
             <div className="mb-8">
-              <label className="text-[10px] font-black uppercase tracking-widest text-[#847F8D] block mb-4">Choose your Avatar</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-[#847F8D] block mb-4">Choose your Identity</label>
               <div className="grid grid-cols-6 gap-3">
                 {AVATAR_OPTIONS.map((url, idx) => (
                   <button
@@ -86,8 +103,8 @@ export default function Register() {
               </div>
             </div>
 
-            <button type="submit" className="w-full mt-8 py-4 bg-[#35313F] text-white rounded-2xl font-bold shadow-lg hover:bg-black transition-all transform active:scale-95">
-              Launch my OS
+            <button type="submit" disabled={loading} className="w-full mt-8 py-4 bg-[#35313F] text-white rounded-2xl font-bold shadow-lg hover:bg-black transition-all transform active:scale-95 disabled:opacity-50">
+              {loading ? "Launching..." : "Launch my OS"}
             </button>
 
             <p className="text-center mt-6 text-xs font-bold text-[#847F8D]">

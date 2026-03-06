@@ -1,10 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useDispatch } from "react-redux";
 import Sidebar from "../components/Sidebar.jsx";
 import Header from "../components/Header.jsx";
 import { useAuth } from "../hooks/useAuth.jsx";
-import { updateProfile } from "../redux/authSlice";
-import { FaUser, FaLock, FaSave, FaEdit, FaTimes, FaPalette } from "react-icons/fa";
+import { updateProfile } from "../redux/authSlice.jsx";
+import { 
+  FaUser, FaLock, FaSave, FaEdit, FaPalette, FaShieldAlt, 
+  FaEnvelope, FaCode, FaChartLine, FaHistory, FaProjectDiagram,
+  FaCheckCircle, FaSatelliteDish, FaFingerprint, FaTimes
+} from "react-icons/fa";
+
+// 🚀 API LAYER IMPORTS
+import { getProjects } from "../api/projectApi";
+import { getMyTasks } from "../api/taskApi";
 
 const AVATAR_OPTIONS = [
   "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
@@ -17,165 +25,174 @@ const AVATAR_OPTIONS = [
 
 export default function Profile() {
   const dispatch = useDispatch();
-  const { user, loading: isSyncing } = useAuth();
+  const { user, loading: isSyncing, token } = useAuth();
 
+  const [stats, setStats] = useState({ activeProjects: 0, completedTasks: 0, totalTasks: 0 });
   const [isEditing, setIsEditing] = useState(false);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [selectedAvatar, setSelectedAvatar] = useState("");
+  const [formData, setFormData] = useState({
+    name: "", email: "", password: "", confirmPassword: "", selectedAvatar: ""
+  });
   const [message, setMessage] = useState({ type: "", text: "" });
 
+  // 1. Fetch Real Stats
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const [projRes, taskRes] = await Promise.all([getProjects(), getMyTasks()]);
+        setStats({
+          activeProjects: projRes.data.filter(p => p.status === 'active').length,
+          completedTasks: taskRes.data.filter(t => t.status === 'done').length,
+          totalTasks: taskRes.data.length
+        });
+      } catch (err) { console.error("Stats Sync Failed"); }
+    };
+    if (token) fetchStats();
+  }, [token]);
+
+  const efficiency = useMemo(() => 
+    stats.totalTasks === 0 ? 0 : Math.round((stats.completedTasks / stats.totalTasks) * 100)
+  , [stats]);
+
+  // 2. Sync form with user data
   useEffect(() => {
     if (user) {
-      setName(user.name || "");
-      setEmail(user.email || "");
-      setSelectedAvatar(user.profilePic || AVATAR_OPTIONS[0]);
+      setFormData({
+        name: user.name || "",
+        email: user.email || "",
+        password: "",
+        confirmPassword: "",
+        selectedAvatar: user.profilePic || AVATAR_OPTIONS[0]
+      });
     }
-  }, [user]);
+  }, [user, isEditing]);
 
-  // 🚀 THE FIX: This function is now explicitly called via onClick
   const handleUpdateProfile = async () => {
-    console.log("🖱️ UPDATE BUTTON DETECTED CLICK"); // IF THIS SHOWS, THE BUTTON WORKS
-    setMessage({ type: "", text: "" });
-
-    if (password && password !== confirmPassword) {
-      console.log("❌ Validation Error: Passwords mismatch");
-      return setMessage({ type: "error", text: "Passwords do not match." });
+    if (formData.password && formData.password !== formData.confirmPassword) {
+      return setMessage({ type: "error", text: "Security keys do not match." });
     }
-
     try {
-      console.log("📡 Dispatching updateProfile to Redux...");
-      const result = await dispatch(updateProfile({ 
-        name, 
-        email, 
-        password: password || undefined, 
-        profilePic: selectedAvatar 
+      await dispatch(updateProfile({ 
+        name: formData.name, email: formData.email, 
+        password: formData.password || undefined, profilePic: formData.selectedAvatar 
       })).unwrap();
-
-      console.log("✅ REDUX SUCCESS:", result);
-      setMessage({ type: "success", text: "Profile updated successfully!" });
+      setMessage({ type: "success", text: "Identity synchronized." });
       setIsEditing(false);
-      setPassword("");
-      setConfirmPassword("");
-    } catch (err) {
-      console.error("❌ REDUX REJECTED:", err);
-      setMessage({ type: "error", text: typeof err === 'string' ? err : "Failed to update" });
-    }
-  };
-
-  const handleCancel = () => {
-    if (user) {
-      setName(user.name);
-      setEmail(user.email);
-      setSelectedAvatar(user.profilePic);
-    }
-    setIsEditing(false);
-    setMessage({ type: "", text: "" });
+    } catch (err) { setMessage({ type: "error", text: "Sync failed." }); }
   };
 
   return (
     <div className="h-screen w-full bg-[#D2C9D8] p-0 md:p-3 lg:p-4 font-sans text-white overflow-hidden flex">
-      <div className="flex flex-1 bg-[#35313F] rounded-none md:rounded-[1.5rem] shadow-xl overflow-hidden relative">
+      <div className="flex flex-1 bg-[#35313F] rounded-none md:rounded-[1.5rem] shadow-xl overflow-hidden relative border border-white/5">
         <Sidebar />
         <div className="flex-1 flex flex-col relative overflow-hidden">
           <Header />
 
-          <main className="flex-1 overflow-y-auto custom-scrollbar p-5 lg:p-10 relative">
-            <div className="max-w-4xl mx-auto">
-              <div className="flex justify-between items-center mb-8">
-                <h1 className="text-2xl font-bold">OS Settings</h1>
+          <main className="flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-10">
+            <div className="max-w-5xl mx-auto space-y-8">
+              
+              <div className="flex justify-between items-end">
+                <div>
+                  <h1 className="text-3xl font-black tracking-tighter uppercase">Agent Parameters</h1>
+                  <p className="text-[10px] text-[#A29EAB] uppercase font-bold tracking-[0.3em] mt-1">System ID: {user?._id?.slice(-8).toUpperCase()}</p>
+                </div>
                 {!isEditing && (
-                  <button onClick={() => setIsEditing(true)} className="bg-white text-[#35313F] px-5 py-2 rounded-xl text-xs font-bold hover:bg-gray-100 transition shadow-sm flex items-center gap-2">
-                    <FaEdit /> Edit Profile
+                  <button onClick={() => setIsEditing(true)} className="bg-white text-[#35313F] px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#D2C9D8] transition shadow-lg flex items-center gap-2">
+                    <FaEdit /> Modify Access
                   </button>
                 )}
               </div>
 
-              {message.text && (
-                <div className={`p-4 rounded-xl mb-6 text-sm font-bold ${message.type === "success" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-rose-500/10 text-rose-400 border border-rose-500/20"}`}>
-                  {message.text}
+              {/* Identity Card */}
+              <div className="bg-[#464153] rounded-[3rem] p-10 border border-white/5 shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center gap-10">
+                <div className="w-40 h-40 rounded-[2.5rem] border-4 border-[#35313F] bg-[#D2C9D8] flex items-center justify-center shadow-2xl overflow-hidden">
+                  <img src={user?.profilePic} alt="avatar" className="w-full h-full object-cover" />
                 </div>
-              )}
-
-              {isEditing ? (
-                /* --- EDIT MODE --- */
-                <div className="bg-[#464153] rounded-[2rem] p-8 border border-white/5 shadow-inner space-y-10">
-                  
-                  {/* Avatar Select */}
-                  <div>
-                    <h3 className="text-xs font-bold text-[#A29EAB] uppercase tracking-widest mb-4"><FaPalette className="inline mr-2"/> Choice of Identity</h3>
-                    <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
-                      {AVATAR_OPTIONS.map((url, idx) => (
-                        <button key={idx} type="button" onClick={() => setSelectedAvatar(url)} className={`relative rounded-2xl overflow-hidden border-4 transition-all h-20 w-20 ${selectedAvatar === url ? "border-white bg-[#35313F] scale-110 shadow-xl" : "border-transparent opacity-40 hover:opacity-100"}`}>
-                          <img src={url} alt="option" className="w-full h-full object-cover" />
-                        </button>
-                      ))}
+                <div className="flex-1 text-center md:text-left">
+                  <h2 className="text-5xl font-black tracking-tighter mb-2">{user?.name}</h2>
+                  <p className="text-[#A29EAB] font-bold text-lg mb-6 flex items-center justify-center md:justify-start gap-2">
+                    <FaEnvelope size={14} className="opacity-50"/> {user?.email}
+                  </p>
+                  <div className="flex flex-wrap justify-center md:justify-start gap-3">
+                    <div className="bg-[#35313F] px-4 py-1.5 rounded-lg border border-white/5 text-[9px] font-black uppercase tracking-widest text-[#D2C9D8]">
+                       {user?.role} ACCESS
                     </div>
                   </div>
+                </div>
+              </div>
 
-                  {/* Input Fields */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-[#A29EAB] uppercase ml-1">Full Name</label>
-                      <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-[#35313F] border-none rounded-xl px-5 py-4 text-sm font-bold text-white focus:ring-2 focus:ring-white outline-none" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-[#A29EAB] uppercase ml-1">Work Email</label>
-                      <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-[#35313F] border-none rounded-xl px-5 py-4 text-sm font-bold text-white focus:ring-2 focus:ring-white outline-none" />
-                    </div>
-                  </div>
+              {/* Dynamic Metrics */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <MetricCard icon={<FaProjectDiagram className="text-indigo-400" />} label="Active Projects" value={stats.activeProjects} />
+                <MetricCard icon={<FaChartLine className="text-emerald-400" />} label="Efficiency Rate" value={`${efficiency}%`} />
+                <MetricCard icon={<FaHistory className="text-amber-400" />} label="Tasks Done" value={stats.completedTasks} />
+              </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-[#A29EAB] uppercase ml-1">New Password</label>
-                      <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="w-full bg-[#35313F] border-none rounded-xl px-5 py-4 text-sm font-bold text-white focus:ring-2 focus:ring-white outline-none" />
+              {/* Edit Modal Logic */}
+              {isEditing && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#35313F]/95 backdrop-blur-md">
+                  <div className="bg-[#464153] w-full max-w-2xl rounded-[3rem] p-8 border border-white/10 shadow-2xl space-y-8 animate-in zoom-in duration-200">
+                    <div className="flex justify-between items-center">
+                      <h2 className="text-xl font-black uppercase tracking-widest">Update Identity</h2>
+                      <button onClick={() => setIsEditing(false)} className="text-[#A29EAB] hover:text-white"><FaTimes /></button>
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-[#A29EAB] uppercase ml-1">Confirm Password</label>
-                      <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" className="w-full bg-[#35313F] border-none rounded-xl px-5 py-4 text-sm font-bold text-white focus:ring-2 focus:ring-white outline-none" />
-                    </div>
-                  </div>
-
-                  <div className="pt-6 flex justify-end gap-4 border-t border-white/5">
-                    <button type="button" onClick={handleCancel} className="px-8 py-4 rounded-2xl text-xs font-black uppercase text-[#A29EAB] hover:text-white transition">Cancel</button>
                     
-                    {/* 🚀 THE CRITICAL BUTTON */}
-                    <button 
-                      type="button" 
-                      onClick={handleUpdateProfile} 
-                      disabled={isSyncing}
-                      className="bg-white text-[#35313F] px-10 py-4 rounded-2xl text-xs font-black uppercase hover:bg-[#D2C9D8] transition shadow-2xl disabled:opacity-30 disabled:cursor-not-allowed"
-                    >
-                      {isSyncing ? "Syncing..." : "Update Profile"}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                /* --- VIEW MODE --- */
-                <div className="bg-[#464153] rounded-[2.5rem] p-8 md:p-12 border border-white/5 shadow-2xl flex flex-col md:flex-row items-center gap-10">
-                  <div className="w-40 h-40 rounded-[2.5rem] border-4 border-[#35313F] bg-[#D2C9D8] flex items-center justify-center shadow-xl overflow-hidden">
-                    {user?.profilePic ? (
-                      <img src={user.profilePic} alt="avatar" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full bg-[#35313F] animate-pulse" />
-                    )}
-                  </div>
-                  <div className="flex-1 text-center md:text-left">
-                    <p className="text-[10px] font-black text-[#A29EAB] uppercase tracking-[0.3em] mb-2">Authenticated OS Member</p>
-                    <h2 className="text-4xl font-black text-white mb-2">{user?.name}</h2>
-                    <p className="text-[#A29EAB] font-bold mb-6">{user?.email}</p>
-                    <div className="inline-block bg-[#35313F] text-[#D2C9D8] text-[10px] font-black px-4 py-1.5 rounded-lg uppercase tracking-widest border border-white/5">
-                      {user?.role}
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-6 gap-2">
+                        {AVATAR_OPTIONS.map((url, i) => (
+                          <button key={i} onClick={() => setFormData({...formData, selectedAvatar: url})} className={`rounded-xl overflow-hidden border-2 transition-all ${formData.selectedAvatar === url ? 'border-white scale-110 shadow-lg' : 'border-transparent opacity-40'}`}>
+                            <img src={url} alt="nav" className="w-full h-full object-cover" />
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <InputBox label="Alias" value={formData.name} onChange={(val) => setFormData({...formData, name: val})} />
+                        <InputBox label="Secure Channel" value={formData.email} onChange={(val) => setFormData({...formData, email: val})} />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/5">
+                        <InputBox label="New Key" type="password" value={formData.password} onChange={(val) => setFormData({...formData, password: val})} />
+                        <InputBox label="Confirm Key" type="password" value={formData.confirmPassword} onChange={(val) => setFormData({...formData, confirmPassword: val})} />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-4 pt-4">
+                      <button onClick={() => setIsEditing(false)} className="text-[10px] font-black uppercase tracking-widest text-[#A29EAB]">Abort</button>
+                      <button onClick={handleUpdateProfile} disabled={isSyncing} className="bg-white text-[#35313F] px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl disabled:opacity-30">
+                        {isSyncing ? "Syncing..." : "Commit Changes"}
+                      </button>
                     </div>
                   </div>
                 </div>
               )}
+
             </div>
           </main>
         </div>
       </div>
+    </div>
+  );
+}
+
+// 🛠️ Sub-components
+function MetricCard({ icon, label, value }) {
+  return (
+    <div className="bg-[#464153]/60 p-8 rounded-[2.5rem] border border-white/5 shadow-xl">
+      <div className="text-2xl mb-4">{icon}</div>
+      <h4 className="text-4xl font-black mb-1">{value}</h4>
+      <p className="text-[10px] font-black text-[#A29EAB] uppercase tracking-widest">{label}</p>
+    </div>
+  );
+}
+
+function InputBox({ label, value, onChange, type = "text" }) {
+  return (
+    <div className="space-y-2">
+      <label className="text-[9px] font-black text-[#A29EAB] uppercase tracking-widest ml-1">{label}</label>
+      <input 
+        type={type} value={value} onChange={(e) => onChange(e.target.value)} 
+        className="w-full bg-[#35313F] border-none rounded-xl px-5 py-4 text-xs font-bold text-white focus:ring-1 focus:ring-[#D2C9D8] outline-none" 
+      />
     </div>
   );
 }

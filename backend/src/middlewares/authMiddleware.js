@@ -1,19 +1,21 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
-// 1. Protect (Login Check)
 export const protect = async (req, res, next) => {
   let token;
 
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer")
-  ) {
+  if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
     try {
       token = req.headers.authorization.split(" ")[1];
+
+      // 🛡️ GUARD: Prevent malformed JWT crash if "null" or "undefined" strings are sent
+      if (!token || token === "null" || token === "undefined") {
+        return res.status(401).json({ message: "Not authorized, invalid token format" });
+      }
+
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       
-      // We select everything EXCEPT password
+      // Select everything EXCEPT password
       req.user = await User.findById(decoded.id).select("-password");
       
       if (!req.user) {
@@ -22,7 +24,7 @@ export const protect = async (req, res, next) => {
 
       next();
     } catch (error) {
-      console.error(error);
+      console.error("JWT Error:", error.message);
       return res.status(401).json({ message: "Not authorized, token failed" });
     }
   } else {
@@ -30,7 +32,6 @@ export const protect = async (req, res, next) => {
   }
 };
 
-// 2. Admin Check (NEW)
 export const admin = (req, res, next) => {
   if (req.user && (req.user.role === "admin" || req.user.role === "owner")) {
     next();

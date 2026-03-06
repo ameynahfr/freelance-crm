@@ -1,188 +1,158 @@
-import { useState, useEffect } from "react";
-import axios from "axios";
-import { Link } from "react-router-dom";
-import Sidebar from "../components/Sidebar";
-import Header from "../components/Header";
-import { useAuth } from "../hooks/useAuth";
+import { useEffect, useState, useCallback } from "react";
+import { useParams } from "react-router-dom";
 import { 
-  FaCheckCircle, 
-  FaRegCircle, 
-  FaClock, 
-  FaProjectDiagram,
-  FaFilter
-} from "react-icons/fa";
+  DndContext, 
+  closestCorners, 
+  MouseSensor, 
+  TouchSensor, 
+  useSensor, 
+  useSensors, 
+  DragOverlay 
+} from "@dnd-kit/core";
+import Sidebar from "../components/Sidebar.jsx";
+import Header from "../components/Header.jsx";
+import { useAuth } from "../hooks/useAuth.jsx";
+import { FaSearch } from "react-icons/fa";
+import TaskModal from "../components/TaskModal.jsx";
+import KanbanColumn from "../components/KanbanColumn.jsx";
+import SortableTaskCard from "../components/SortableTaskCard.jsx";
+
+// 🚀 API LAYER IMPORTS
+import { getMyTasks, getProjectTasks, updateTask } from "../api/taskApi";
+import { getProjectById } from "../api/projectApi";
 
 export default function MyTasks() {
-  const { token, user } = useAuth();
+  const { projectId } = useParams(); // For when you view tasks within a specific project
+  const { token, user, loading: authLoading } = useAuth(); 
+  
   const [tasks, setTasks] = useState([]);
+  const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("all"); // 'all', 'todo', 'done'
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState(null);
+  const [activeTask, setActiveTask] = useState(null);
 
-  // Fetch My Tasks
-  const fetchMyTasks = async () => {
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
+  );
+
+  const fetchData = useCallback(async () => {
+    if (!token) return;
     try {
-      const res = await axios.get("http://localhost:5000/api/tasks/my-tasks", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setTasks(res.data);
-    } catch (err) {
-      console.error("Failed to fetch tasks");
-    } finally {
-      setLoading(false);
+      // 🎯 Logic: If on a project page, show project tasks. Otherwise, show personal workload.
+      const taskRes = projectId && projectId !== "undefined"
+        ? await getProjectTasks(projectId)
+        : await getMyTasks();
+      
+      const cleanTasks = taskRes.data.map(t => ({
+        ...t,
+        _id: (t._id?.$oid || t._id || "").toString()
+      }));
+      setTasks(cleanTasks);
+
+      if (projectId && projectId !== "undefined") {
+        const projRes = await getProjectById(projectId);
+        setProject(projRes.data);
+      }
+    } catch (err) { 
+      console.error("Board Sync Error:", err); 
+    } finally { 
+      setLoading(false); 
+    }
+  }, [projectId, token]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const handleDragStart = (event) => {
+    const task = tasks.find(t => t._id === event.active.id.toString());
+    setActiveTask(task);
+  };
+
+  const handleDragEnd = async (event) => {
+    const { active, over } = event;
+    setActiveTask(null);
+    if (!over) return;
+
+    const taskId = active.id.toString();
+    const overId = over.id.toString();
+
+    let newStatus = overId; 
+    const isOverACard = tasks.find(t => t._id === overId);
+    if (isOverACard) {
+      newStatus = isOverACard.status;
+    }
+
+    if (!["todo", "in-progress", "done"].includes(newStatus)) return;
+
+    const taskToUpdate = tasks.find(t => t._id === taskId);
+    if (!taskToUpdate || taskToUpdate.status === newStatus) return;
+
+    setTasks(prev => prev.map(t => t._id === taskId ? { ...t, status: newStatus } : t));
+
+    try {
+      await updateTask(taskId, { status: newStatus });
+    } catch (err) { 
+      fetchData(); 
     }
   };
 
-  useEffect(() => {
-    fetchMyTasks();
-  }, [token]);
+  const filtered = tasks.filter(t => t.title.toLowerCase().includes(searchTerm.toLowerCase()));
 
-  // Toggle Status
-  const toggleStatus = async (task) => {
-    const nextStatus = task.status === "done" ? "todo" : "done";
-    
-    // Optimistic UI Update
-    setTasks(prev => prev.map(t => t._id === task._id ? { ...t, status: nextStatus } : t));
-
-    try {
-      await axios.put(`http://localhost:5000/api/tasks/${task._id}`, 
-        { status: nextStatus },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-    } catch (err) {
-      alert("Failed to update task");
-      fetchMyTasks(); // Revert on error
-    }
-  };
-
-  // Filter Logic
-  const filteredTasks = tasks.filter(t => {
-    if (filter === "done") return t.status === "done";
-    if (filter === "todo") return t.status !== "done";
-    return true;
-  });
-
-  if (loading) return (
-    <div className="h-screen flex items-center justify-center bg-[#D2C9D8] text-[#35313F] font-bold animate-pulse">
-      Loading your workload...
+  if (authLoading || loading || !user) return (
+    <div className="h-screen flex items-center justify-center bg-[#D2C9D8]">
+      <div className="bg-[#35313F] px-6 py-3 rounded-full text-white text-sm animate-pulse">Syncing Mandates...</div>
     </div>
   );
 
   return (
     <div className="h-screen w-full bg-[#D2C9D8] p-0 md:p-3 lg:p-4 font-sans text-white overflow-hidden flex">
-      <div className="flex flex-1 bg-[#35313F] rounded-none md:rounded-[1.5rem] shadow-xl overflow-hidden relative">
+      <div className="flex flex-1 bg-[#35313F] rounded-none md:rounded-[1.5rem] shadow-xl overflow-hidden relative border border-white/5">
         <Sidebar />
-        
         <div className="flex-1 flex flex-col relative overflow-hidden">
           <Header />
-          
-          <main className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-8">
-            
-            {/* Header Section */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+          <main className="flex-1 overflow-hidden flex flex-col">
+            <div className="bg-[#35313F]/95 backdrop-blur-sm border-b border-[#5B5569]/30 px-8 py-4 flex justify-between items-center">
               <div>
-                <h1 className="text-2xl font-bold text-white tracking-tight">My Workload</h1>
-                <p className="text-xs text-[#A29EAB] mt-1">
-                  Welcome back, <span className="text-white font-bold">{user?.name}</span>. You have {tasks.filter(t => t.status !== 'done').length} pending tasks.
-                </p>
+                <h1 className="text-xl font-bold">{project ? project.title : "My Workload"}</h1>
+                <p className="text-[10px] text-[#A29EAB] uppercase font-bold tracking-widest">Active Kanban Workspace</p>
               </div>
-
-              {/* Filter Tabs */}
-              <div className="bg-[#464153] p-1 rounded-xl flex">
-                {["all", "todo", "done"].map((f) => (
-                  <button
-                    key={f}
-                    onClick={() => setFilter(f)}
-                    className={`px-4 py-2 rounded-lg text-xs font-bold capitalize transition-all ${
-                      filter === f ? "bg-[#35313F] text-white shadow-sm" : "text-[#A29EAB] hover:text-white"
-                    }`}
-                  >
-                    {f}
+              <div className="flex gap-3">
+                <div className="relative">
+                  <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A29EAB]" size={10} />
+                  <input 
+                    type="text" placeholder="Search..." value={searchTerm} 
+                    onChange={(e) => setSearchTerm(e.target.value)} 
+                    className="bg-[#464153] text-white text-xs pl-8 pr-3 py-2.5 rounded-xl border-none outline-none w-48 focus:ring-1 focus:ring-[#D2C9D8]" 
+                  />
+                </div>
+                {(user.role === 'owner' || user.role === 'manager') && (
+                  <button onClick={() => { setEditingTask(null); setIsModalOpen(true); }} className="bg-white text-[#35313F] px-4 py-2 rounded-xl text-xs font-bold hover:bg-[#D2C9D8] transition-colors">
+                    + New Task
                   </button>
-                ))}
+                )}
               </div>
             </div>
 
-            {/* Tasks List */}
-            {filteredTasks.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-64 border border-dashed border-white/10 rounded-[2rem] bg-[#464153]/20">
-                <div className="w-12 h-12 rounded-full bg-[#464153] flex items-center justify-center text-[#A29EAB] mb-3">
-                  <FaCheckCircle />
+            <div className="flex-1 overflow-x-auto p-6 scrollbar-hide">
+              <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+                <div className="flex gap-6 h-full min-w-[900px]">
+                  <KanbanColumn id="todo" title="To Do" tasks={filtered.filter(t => t.status === "todo")} currentUser={user} onEdit={setEditingTask} onDelete={fetchData} />
+                  <KanbanColumn id="in-progress" title="In Progress" tasks={filtered.filter(t => t.status === "in-progress")} currentUser={user} onEdit={setEditingTask} onDelete={fetchData} />
+                  <KanbanColumn id="done" title="Completed" tasks={filtered.filter(t => t.status === "done")} currentUser={user} onEdit={setEditingTask} onDelete={fetchData} />
                 </div>
-                <p className="text-[#A29EAB] text-sm">No tasks found in this category.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-3">
-                {filteredTasks.map((task) => (
-                  <div 
-                    key={task._id} 
-                    className={`group flex items-center justify-between p-4 md:p-5 rounded-2xl border transition-all duration-200 
-                      ${task.status === "done" 
-                        ? "bg-[#35313F]/40 border-white/5 opacity-50" 
-                        : "bg-[#464153] border-transparent hover:bg-[#464153]/80 hover:border-white/10 shadow-lg"
-                      }`}
-                  >
-                    {/* Left: Checkbox & Info */}
-                    <div className="flex items-center gap-4 md:gap-6 flex-1 min-w-0">
-                      
-                      {/* Custom Checkbox */}
-                      <button 
-                        onClick={() => toggleStatus(task)}
-                        className={`text-xl transition-all duration-300 active:scale-75 ${
-                          task.status === "done" ? "text-[#D2C9D8]" : "text-[#A29EAB] hover:text-white"
-                        }`}
-                      >
-                        {task.status === "done" ? <FaCheckCircle /> : <FaRegCircle />}
-                      </button>
-
-                      <div className="flex-1 min-w-0">
-                        <h3 className={`text-sm md:text-base font-bold truncate ${
-                          task.status === "done" ? "line-through text-[#A29EAB]" : "text-white"
-                        }`}>
-                          {task.title}
-                        </h3>
-                        
-                        <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                          {/* Project Tag */}
-                          <Link 
-                            to={`/projects/${task.project?._id}`}
-                            className="flex items-center gap-1.5 text-[10px] bg-[#35313F] px-2 py-1 rounded-md text-white hover:bg-black/40 transition"
-                          >
-                            <FaProjectDiagram size={8} />
-                            <span className="truncate max-w-[100px]">{task.project?.title || "Unknown Project"}</span>
-                          </Link>
-
-                          {/* Due Date */}
-                          <div className={`flex items-center gap-1.5 text-[10px] font-medium ${
-                             task.dueDate && new Date(task.dueDate) < new Date() && task.status !== "done"
-                               ? "text-rose-400" 
-                               : "text-[#A29EAB]"
-                          }`}>
-                            <FaClock size={8} />
-                            {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "No Deadline"}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Right: Assigned By (Manager) */}
-                    <div className="hidden md:flex flex-col items-end pl-4 border-l border-white/5">
-                      <span className="text-[9px] text-[#A29EAB] uppercase font-bold">Assigned By</span>
-                      <div className="flex items-center gap-2 mt-1">
-                        <div className="w-5 h-5 rounded-full bg-gradient-to-r from-orange-400 to-pink-500 flex items-center justify-center text-[8px] font-bold text-white">
-                          {task.user?.name?.charAt(0) || "A"}
-                        </div>
-                        <span className="text-xs text-white/80">{task.user?.name || "Admin"}</span>
-                      </div>
-                    </div>
-
-                  </div>
-                ))}
-              </div>
-            )}
-            
+                <DragOverlay dropAnimation={null}>
+                  {activeTask ? <SortableTaskCard task={activeTask} currentUser={user} isOverlay /> : null}
+                </DragOverlay>
+              </DndContext>
+            </div>
           </main>
         </div>
       </div>
+      {isModalOpen && (
+        <TaskModal projectId={projectId} editData={editingTask} onClose={() => { setIsModalOpen(false); setEditingTask(null); }} onCreated={fetchData} />
+      )}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import User from "../models/User.js";
+import { sendWelcomeEmail } from "../utils/sendEmail.js"; // 🚀 NEW: Import the email utility
 
 /**
  * @desc    Get complete agency staff list
@@ -58,12 +59,25 @@ export const addTeamMember = async (req, res) => {
         const user = await User.create({
             name: name.trim(),
             email: email.toLowerCase().trim(),
-            password,
+            password, // Mongoose will hash this automatically before saving
             role: role || "member",
             title: title || "Agency Staff",
             profilePic: profilePic || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
             agency_owner: rootOwnerId,
         });
+
+        // 🚀 NEW: Fire off the automated Welcome Email
+        try {
+            await sendWelcomeEmail({
+                name: user.name,
+                email: user.email,
+                password: password // Send the raw password they typed in so the user knows what it is
+            });
+            console.log(`Welcome email sent to ${user.email}`);
+        } catch (emailError) {
+            console.error("Failed to send welcome email:", emailError.message);
+            // We catch this error so the API doesn't crash if your .env credentials are wrong
+        }
 
         res.status(201).json({ message: "Member added successfully", id: user._id });
     } catch (error) {

@@ -1,5 +1,4 @@
 import { useState } from "react";
-import axios from "axios";
 import {
   FaTimes,
   FaUser,
@@ -9,31 +8,33 @@ import {
   FaSave
 } from "react-icons/fa";
 
-export default function ClientModal({ token, onClose, onUpdated, editData }) {
+// 🚀 API LAYER IMPORTS
+import { createClient, updateClient } from "../api/clientApi";
+
+export default function ClientModal({ onClose, onUpdated, editData }) {
   const [name, setName] = useState(editData?.name || "");
   const [email, setEmail] = useState(editData?.email || "");
   const [phone, setPhone] = useState(editData?.phone || "");
   const [notes, setNotes] = useState(editData?.notes || "");
   
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [message, setMessage] = useState({ type: "", text: "" }); // Beautiful UI errors
+  const [message, setMessage] = useState({ type: "", text: "" });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     setMessage({ type: "", text: "" });
 
-    const url = editData
-      ? `http://localhost:5000/api/clients/${editData._id}`
-      : "http://localhost:5000/api/clients";
+    const clientPayload = { name, email, phone, notes };
 
     try {
-      await axios({
-        method: editData ? "put" : "post",
-        url,
-        data: { name, email, phone, notes },
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      if (editData) {
+        // 🚀 Clean API Update Call
+        await updateClient(editData._id, clientPayload);
+      } else {
+        // 🚀 Clean API Create Call
+        await createClient(clientPayload);
+      }
       
       onUpdated();
       onClose();
@@ -54,13 +55,11 @@ export default function ClientModal({ token, onClose, onUpdated, editData }) {
         onClick={onClose}
       />
       
-      {/* Modal Content */}
       <div className="relative w-full max-w-lg bg-[#35313F] rounded-[2rem] shadow-2xl overflow-hidden border border-white/5 animate-in fade-in zoom-in-95 duration-200">
         
-        {/* Header */}
         <div className="flex justify-between items-center px-6 py-5 border-b border-white/5 bg-[#464153]/30">
           <h2 className="text-lg font-bold text-white tracking-tight">
-            {editData ? "Edit Client" : "New Client"}
+            {editData ? "Update Account" : "New Client"}
           </h2>
           <button
             onClick={onClose}
@@ -72,7 +71,6 @@ export default function ClientModal({ token, onClose, onUpdated, editData }) {
 
         <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-5">
           
-          {/* Error Banner */}
           {message.text && (
             <div className={`p-3 rounded-xl text-xs font-bold ${
               message.type === 'error' 
@@ -85,38 +83,38 @@ export default function ClientModal({ token, onClose, onUpdated, editData }) {
 
           <div>
             <label className="text-[11px] font-bold text-[#A29EAB] uppercase tracking-wider mb-2 block ml-1">
-              Full Name
+              Legal / Trading Name
             </label>
             <div className="relative">
               <FaUser className="absolute left-4 top-1/2 -translate-y-1/2 text-[#A29EAB]" size={12} />
               <input
                 type="text" required value={name} onChange={(e) => setName(e.target.value)}
-                className="w-full bg-[#464153] border-none rounded-xl pl-10 pr-4 py-3 text-sm text-white focus:ring-2 focus:ring-[#D2C9D8] outline-none"
-                placeholder="Client Company or Name"
+                className="w-full bg-[#464153] border-none rounded-xl pl-10 pr-4 py-3 text-sm text-white focus:ring-1 focus:ring-[#D2C9D8] outline-none"
+                placeholder="Company Name"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-[11px] font-bold text-[#A29EAB] uppercase tracking-wider mb-2 block ml-1">Email</label>
+              <label className="text-[11px] font-bold text-[#A29EAB] uppercase tracking-wider mb-2 block ml-1">Work Email</label>
               <div className="relative">
                 <FaEnvelope className="absolute left-4 top-1/2 -translate-y-1/2 text-[#A29EAB]" size={12} />
                 <input
                   type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-[#464153] border-none rounded-xl pl-10 pr-4 py-3 text-sm text-white focus:ring-2 focus:ring-[#D2C9D8] outline-none"
-                  placeholder="name@company.com"
+                  className="w-full bg-[#464153] border-none rounded-xl pl-10 pr-4 py-3 text-sm text-white focus:ring-1 focus:ring-[#D2C9D8] outline-none"
+                  placeholder="contact@email.com"
                 />
               </div>
             </div>
             <div>
-              <label className="text-[11px] font-bold text-[#A29EAB] uppercase tracking-wider mb-2 block ml-1">Phone</label>
+              <label className="text-[11px] font-bold text-[#A29EAB] uppercase tracking-wider mb-2 block ml-1">Direct Line</label>
               <div className="relative">
                 <FaPhone className="absolute left-4 top-1/2 -translate-y-1/2 text-[#A29EAB]" size={12} />
                 <input
                   type="text" value={phone} onChange={(e) => setPhone(e.target.value)}
-                  className="w-full bg-[#464153] border-none rounded-xl pl-10 pr-4 py-3 text-sm text-white focus:ring-2 focus:ring-[#D2C9D8] outline-none"
-                  placeholder="+1 (555) 000-0000"
+                  className="w-full bg-[#464153] border-none rounded-xl pl-10 pr-4 py-3 text-sm text-white focus:ring-1 focus:ring-[#D2C9D8] outline-none"
+                  placeholder="+1..."
                 />
               </div>
             </div>
@@ -124,12 +122,12 @@ export default function ClientModal({ token, onClose, onUpdated, editData }) {
 
           <div>
             <label className="text-[11px] font-bold text-[#A29EAB] uppercase tracking-wider mb-2 block ml-1 flex items-center gap-2">
-              <FaStickyNote size={10} /> Internal Notes
+              <FaStickyNote size={10} /> Internal Briefing
             </label>
             <textarea
               rows="3" value={notes} onChange={(e) => setNotes(e.target.value)}
-              className="w-full bg-[#464153] border-none rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-[#D2C9D8] outline-none resize-none"
-              placeholder="Add any details about this client..."
+              className="w-full bg-[#464153] border-none rounded-xl px-4 py-3 text-sm text-white focus:ring-1 focus:ring-[#D2C9D8] outline-none resize-none"
+              placeholder="Background on this account..."
             />
           </div>
 
@@ -144,7 +142,7 @@ export default function ClientModal({ token, onClose, onUpdated, editData }) {
               type="submit" disabled={isSubmitting}
               className="flex-1 py-3 rounded-xl font-bold text-xs uppercase text-[#35313F] bg-white shadow-lg hover:bg-gray-100 transition-colors flex items-center justify-center gap-2"
             >
-              {isSubmitting ? "Saving..." : <><FaSave /> {editData ? "Update Client" : "Create Client"}</>}
+              {isSubmitting ? "Syncing..." : <><FaSave /> {editData ? "Update Client" : "Add Client"}</>}
             </button>
           </div>
         </form>

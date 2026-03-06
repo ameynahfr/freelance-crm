@@ -1,22 +1,17 @@
 import { useEffect, useState, useCallback } from "react";
 import Sidebar from "../components/Sidebar.jsx";
 import Header from "../components/Header.jsx";
-import axios from "axios";
 import { useAuth } from "../hooks/useAuth.jsx";
 import ProjectModal from "../components/ProjectModal";
 import { Link, useNavigate } from "react-router-dom";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-} from "recharts";
-import { FaEdit, FaPlus, FaSearch, FaFilter } from "react-icons/fa";
+import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { FaEdit, FaPlus, FaSearch } from "react-icons/fa";
+
+// 🚀 API LAYER IMPORTS
+import { getDashboardMetrics } from "../api/dashboardApi";
 
 export default function Dashboard() {
-  const { token, user, isAuthenticated, loading: authLoading } = useAuth();
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   const [metrics, setMetrics] = useState(null);
@@ -25,30 +20,24 @@ export default function Dashboard() {
   const [searchTerm, setSearchTerm] = useState("");
 
   const fetchMetrics = useCallback(async () => {
-    if (!token) return;
     try {
-      const res = await axios.get("http://localhost:5000/api/dashboard", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      // 🚀 Clean API Call - No hardcoded URLs or manual headers
+      const res = await getDashboardMetrics();
       setMetrics(res.data);
     } catch (err) {
-      console.error("Dashboard Error:", err);
+      console.error("Dashboard Sync Failed:", err);
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     if (!authLoading) {
-      if (!isAuthenticated) {
-        navigate("/login");
-      } else {
-        fetchMetrics();
-      }
+      if (!isAuthenticated) navigate("/login");
+      else fetchMetrics();
     }
   }, [authLoading, isAuthenticated, fetchMetrics, navigate]);
 
-  // Filters
   const filteredProjects = metrics?.projectProgressData?.filter(p => 
     p.title?.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
@@ -58,34 +47,22 @@ export default function Dashboard() {
     t.project?.title?.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
-  // 🔒 Permission Check
   const isManager = user?.role === "owner" || user?.role === "manager";
 
-  if (authLoading || (loading && !metrics)) {
-    return (
-      <div className="h-screen w-full flex items-center justify-center bg-[#D2C9D8]">
-        <div className="bg-[#35313F] px-5 py-2.5 rounded-full text-white text-sm font-medium animate-pulse">
-          Syncing OS...
-        </div>
-      </div>
-    );
-  }
+  if (authLoading || (loading && !metrics)) return (
+    <div className="h-screen w-full flex items-center justify-center bg-[#D2C9D8]">
+      <div className="bg-[#35313F] px-5 py-2.5 rounded-full text-white text-sm font-medium animate-pulse">Syncing Metrics...</div>
+    </div>
+  );
 
-  if (!metrics) return <div className="h-screen flex items-center justify-center text-white bg-[#35313F]">Connection Error. Please refresh.</div>;
-
-  const earningsOverTime = metrics.earningsOverTime?.length > 0 ? metrics.earningsOverTime : [
-    { day: "Mon", earnings: 0 }, { day: "Tue", earnings: 0 }, { day: "Wed", earnings: 0 },
-    { day: "Thu", earnings: 0 }, { day: "Fri", earnings: 0 }, { day: "Sat", earnings: 0 }, { day: "Sun", earnings: 0 },
-  ];
+  if (!metrics) return <div className="h-screen flex items-center justify-center text-white bg-[#35313F]">Connection Error. Refresh.</div>;
 
   return (
     <div className="h-screen w-full bg-[#D2C9D8] p-0 md:p-3 lg:p-4 font-sans text-white overflow-hidden flex">
       <div className="flex flex-1 bg-[#35313F] rounded-none md:rounded-[1.5rem] shadow-xl overflow-hidden relative">
         <Sidebar />
-
         <div className="flex-1 flex flex-col relative z-10 overflow-hidden">
           <Header />
-
           <main className="flex-1 overflow-y-auto custom-scrollbar relative">
             <div className="sticky top-0 z-30 bg-[#35313F]/95 backdrop-blur-sm border-b border-[#5B5569]/30 py-4 px-8 flex justify-between items-center">
               <h1 className="text-lg font-bold">Overview</h1>
@@ -93,13 +70,18 @@ export default function Dashboard() {
                 <div className="hidden md:flex bg-[#464153] px-4 py-2 rounded-full items-center gap-2 border border-white/5">
                   <FaSearch className="text-[#A29EAB]" size={12}/>
                   <input 
-                    type="text" placeholder="Search mandates..." value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="bg-transparent border-none outline-none text-xs w-32"
+                    type="text" 
+                    placeholder="Search metrics..." 
+                    value={searchTerm} 
+                    onChange={(e) => setSearchTerm(e.target.value)} 
+                    className="bg-transparent border-none outline-none text-xs w-32" 
                   />
                 </div>
                 {isManager && (
-                  <button onClick={() => setShowModal(true)} className="bg-white text-[#35313F] text-xs font-bold px-4 py-2 rounded-full hover:bg-gray-100 transition shadow-lg">
+                  <button 
+                    onClick={() => setShowModal(true)} 
+                    className="bg-white text-[#35313F] text-xs font-bold px-4 py-2 rounded-full hover:bg-gray-100 transition shadow-lg"
+                  >
                     + New Project
                   </button>
                 )}
@@ -108,8 +90,6 @@ export default function Dashboard() {
 
             <div className="max-w-[1600px] mx-auto w-full px-8 py-6">
               <div className="grid grid-cols-1 xl:grid-cols-4 gap-5">
-                
-                {/* Profile Card */}
                 <div className="xl:col-span-1">
                   <div className="bg-[#464153] rounded-[2rem] p-8 text-center border border-white/5 shadow-xl relative overflow-hidden h-full">
                     <div className="absolute top-0 left-0 w-full h-24 bg-white/5" />
@@ -125,18 +105,17 @@ export default function Dashboard() {
                     <h2 className="text-xl font-bold">{user?.name}</h2>
                     <p className="text-[10px] font-bold text-[#A29EAB] uppercase tracking-widest">{user?.role}</p>
                     <div className="mt-6 space-y-3">
-                        <div className="bg-[#35313F] p-3 rounded-xl border border-white/5">
-                            <p className="text-[9px] text-[#A29EAB] uppercase font-bold tracking-tighter">Current Mandates</p>
-                            <p className="text-lg font-bold">{metrics.activeProjects}</p>
-                        </div>
-                        <Link to="/profile" className="flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 p-3 rounded-xl text-xs font-bold transition">
-                            <FaEdit size={10} /> Edit Identity
-                        </Link>
+                      <div className="bg-[#35313F] p-3 rounded-xl border border-white/5">
+                        <p className="text-[9px] text-[#A29EAB] uppercase font-bold tracking-tighter">Live Projects</p>
+                        <p className="text-lg font-bold">{metrics.activeProjects}</p>
+                      </div>
+                      <Link to="/profile" className="flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 p-3 rounded-xl text-xs font-bold transition">
+                        <FaEdit size={10} /> Edit Identity
+                      </Link>
                     </div>
                   </div>
                 </div>
 
-                {/* Main Data Section */}
                 <div className="xl:col-span-3 space-y-5">
                   <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                     <StatCard label="Active" value={metrics.activeProjects} />
@@ -144,23 +123,20 @@ export default function Dashboard() {
                     <StatCard label="Overdue" value={metrics.overdueTasks} color="text-rose-400" />
                     {isManager && (
                       <>
-                        <StatCard label="Total Revenue" value={`$${(metrics.totalEarnings || 0).toLocaleString()}`} />
+                        <StatCard label="Revenue" value={`$${(metrics.totalEarnings || 0).toLocaleString()}`} />
                         <StatCard label="Outstanding" value={`$${(metrics.unpaidEarnings || 0).toLocaleString()}`} />
                         <StatCard label="Completed" value={metrics.completedProjects} />
                       </>
                     )}
                   </div>
 
-                  {/* 📊 UPDATED CHART & HEALTH GRID */}
                   <div className={`grid grid-cols-1 ${isManager ? 'lg:grid-cols-3' : 'lg:grid-cols-1'} gap-5`}>
-                    
-                    {/* Revenue Performance - ONLY FOR MANAGERS */}
                     {isManager && (
                       <div className="lg:col-span-2 bg-[#464153] rounded-3xl p-6 border border-white/5 shadow-inner">
                         <h3 className="text-sm font-bold mb-6">Revenue Performance</h3>
                         <div className="h-56">
                           <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={earningsOverTime}>
+                            <LineChart data={metrics.earningsOverTime}>
                               <CartesianGrid strokeDasharray="3 3" stroke="#5B5569" vertical={false} opacity={0.2} />
                               <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fill: '#A29EAB', fontSize: 10}} />
                               <Tooltip contentStyle={{backgroundColor: '#35313F', border: 'none', borderRadius: '10px'}} />
@@ -170,8 +146,6 @@ export default function Dashboard() {
                         </div>
                       </div>
                     )}
-
-                    {/* Project Health - Spans full width if Chart is hidden */}
                     <div className={`${isManager ? 'lg:col-span-1' : ''} bg-[#F2EAE3] rounded-3xl p-6 text-[#35313F] shadow-inner`}>
                       <h3 className="text-sm font-bold mb-4">Project Health</h3>
                       <div className="space-y-4">
@@ -186,48 +160,38 @@ export default function Dashboard() {
                             </div>
                           </div>
                         ))}
-                        {filteredProjects.length === 0 && (
-                           <p className="text-[10px] text-[#847F8D] text-center py-4">No active mandates found.</p>
-                        )}
                       </div>
                     </div>
                   </div>
 
-                  {/* Upcoming Deadlines */}
                   <div className="bg-[#464153] rounded-3xl p-6 border border-white/5 shadow-inner">
                     <h3 className="text-sm font-bold mb-4">Upcoming Deadlines</h3>
                     <div className="space-y-2">
                       {filteredTasks.map(t => (
                         <div key={t._id} className="flex items-center justify-between p-3 hover:bg-white/5 rounded-xl transition">
-                           <div>
-                              <p className="text-xs font-bold">{t.title}</p>
-                              <p className="text-[10px] text-[#A29EAB]">{t.project?.title || "Internal mandate"}</p>
-                           </div>
-                           <span className="text-[10px] bg-[#35313F] px-2 py-1 rounded-lg border border-white/5">
-                             {new Date(t.dueDate).toLocaleDateString()}
-                           </span>
+                          <div>
+                            <p className="text-xs font-bold">{t.title}</p>
+                            <p className="text-[10px] text-[#A29EAB]">{t.project?.title || "Internal mandate"}</p>
+                          </div>
+                          <span className="text-[10px] bg-[#35313F] px-2 py-1 rounded-lg border border-white/5">
+                            {new Date(t.dueDate).toLocaleDateString()}
+                          </span>
                         </div>
                       ))}
-                      {filteredTasks.length === 0 && (
-                        <p className="text-xs text-[#A29EAB] text-center py-4 italic">No pending deadlines. Enjoy the calm! 🎉</p>
-                      )}
                     </div>
                   </div>
                 </div>
-
               </div>
             </div>
           </main>
         </div>
-
-        {showModal && (
-          <ProjectModal 
-            token={token} 
-            onClose={() => setShowModal(false)} 
-            onCreated={() => { setShowModal(false); fetchMetrics(); }} 
-          />
-        )}
       </div>
+      {showModal && (
+        <ProjectModal 
+          onClose={() => setShowModal(false)} 
+          onUpdated={() => { setShowModal(false); fetchMetrics(); }} 
+        />
+      )}
     </div>
   );
 }

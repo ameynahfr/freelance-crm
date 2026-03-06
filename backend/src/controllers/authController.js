@@ -87,15 +87,8 @@ export const updateUserProfile = async (req, res) => {
     if (user) {
       user.name = req.body.name || user.name;
       user.email = (req.body.email || user.email).toLowerCase();
-      
-      // ✅ Allow updating the profile picture
-      if (req.body.profilePic) {
-        user.profilePic = req.body.profilePic;
-      }
-
-      if (req.body.password) {
-        user.password = req.body.password;
-      }
+      if (req.body.profilePic) user.profilePic = req.body.profilePic;
+      if (req.body.password) user.password = req.body.password;
 
       const updatedUser = await user.save();
 
@@ -105,6 +98,7 @@ export const updateUserProfile = async (req, res) => {
         email: updatedUser.email,
         role: updatedUser.role,
         profilePic: updatedUser.profilePic,
+        // Send the token back so the frontend keeps it in memory
         token: req.headers.authorization.split(" ")[1],
       });
     } else {

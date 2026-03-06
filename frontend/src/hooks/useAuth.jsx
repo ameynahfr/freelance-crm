@@ -1,28 +1,38 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { login, register, logout, loadUser } from "../redux/authSlice";
+import { loadUser as loadUserThunk, login as loginThunk, logout as logoutAction } from "../redux/authSlice";
 
 export const useAuth = () => {
   const dispatch = useDispatch();
-  
-  // Select data directly from Redux store
   const { user, token, isAuthenticated, loading, error } = useSelector((state) => state.auth);
 
-  // Attempt to load the user from the token on first mount (refresh persistence)
   useEffect(() => {
-    if (!user && token) {
-      dispatch(loadUser());
+    // 🚀 Only load if we have a token but no user object yet
+    if (token && !user && !loading && !error) {
+      dispatch(loadUserThunk());
     }
-  }, [dispatch, token, user]);
+  }, [dispatch, token, user, loading, error]);
+
+  const currentUser = useMemo(() => {
+    if (!user) return null;
+    const data = user.user || user.data || user;
+    
+    return {
+      ...data,
+      _id: (data._id || data.id || "").toString(),
+      role: (data.role || "").toLowerCase()
+    };
+  }, [user]);
 
   return {
-    user,
+    user: currentUser,
+    role: currentUser?.role || null,
+    id: currentUser?._id || null,
     token,
     isAuthenticated,
-    loading,
+    loading: loading || (token && !currentUser && !error),
     error,
-    login: (userData) => dispatch(login(userData)),
-    register: (userData) => dispatch(register(userData)),
-    logout: () => dispatch(logout()),
+    login: (d) => dispatch(loginThunk(d)),
+    logout: () => dispatch(logoutAction()),
   };
 };

@@ -1,36 +1,37 @@
 import { useState } from "react";
-import axios from "axios";
-import { FaTimes, FaUser, FaEnvelope, FaLock, FaBriefcase, FaCode } from "react-icons/fa";
+import { FaTimes, FaUser, FaEnvelope, FaLock, FaBriefcase, FaCode, FaSave } from "react-icons/fa";
 
-export default function AddMemberModal({ token, onClose, onSuccess }) {
+// 🚀 API LAYER IMPORT
+import { addTeamMember } from "../api/teamApi";
+
+export default function AddMemberModal({ onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    password: "", // In a real app, you'd email them a setup link
+    password: "",
     role: "member",
-    title: "", // e.g. "Frontend Dev"
-    skills: "" // comma separated
+    title: "", 
+    skills: "" 
   });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      // Split skills string into array: "React, Node" -> ["React", "Node"]
+      // Data Transformation: String to Array for skills
       const payload = {
         ...formData,
-        skills: formData.skills.split(",").map(s => s.trim())
+        skills: formData.skills ? formData.skills.split(",").map(s => s.trim()) : []
       };
 
-      await axios.post("http://localhost:5000/api/team", payload, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      // 🚀 Clean API Call - Interceptor adds the Bearer Token
+      await addTeamMember(payload);
       
       onSuccess();
       onClose();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to add member");
+      alert(err.response?.data?.message || "Failed to recruit agent. Please check credentials.");
     } finally {
       setLoading(false);
     }
@@ -38,47 +39,49 @@ export default function AddMemberModal({ token, onClose, onSuccess }) {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-[#35313F]/80 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-[#35313F]/80 backdrop-blur-sm transition-opacity" onClick={onClose} />
       
-      <div className="relative w-full max-w-lg bg-[#35313F] rounded-[2rem] border border-white/5 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95">
+      <div className="relative w-full max-w-lg bg-[#35313F] rounded-[2rem] border border-white/5 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         
         <div className="px-8 py-6 bg-[#464153]/30 border-b border-white/5 flex justify-between items-center">
-          <h3 className="text-white font-bold text-lg">Recruit Agent</h3>
-          <button onClick={onClose} className="text-[#A29EAB] hover:text-white"><FaTimes /></button>
+          <div>
+            <h3 className="text-white font-bold text-lg tracking-tight">Recruit Agent</h3>
+            <p className="text-[10px] text-[#A29EAB] uppercase font-bold tracking-widest">New Personnel Entry</p>
+          </div>
+          <button onClick={onClose} className="text-[#A29EAB] hover:text-white transition-colors bg-white/5 p-2 rounded-full hover:bg-white/10">
+            <FaTimes size={14} />
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-8 space-y-5">
           
           <div className="grid grid-cols-2 gap-5">
-            {/* Name */}
             <div>
               <label className="text-[10px] font-bold text-[#A29EAB] uppercase tracking-wider mb-1 block">Full Name</label>
               <div className="relative">
                 <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A29EAB] text-xs" />
                 <input 
-                  type="text" required placeholder="John Doe"
+                  type="text" required placeholder="Agent Name"
                   value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})}
                   className="w-full bg-[#464153] text-white text-sm pl-9 pr-3 py-3 rounded-xl border-none outline-none focus:ring-1 focus:ring-[#D2C9D8]"
                 />
               </div>
             </div>
             
-            {/* Role Dropdown */}
             <div>
-              <label className="text-[10px] font-bold text-[#A29EAB] uppercase tracking-wider mb-1 block">Clearance Level</label>
+              <label className="text-[10px] font-bold text-[#A29EAB] uppercase tracking-wider mb-1 block">Clearance</label>
               <select 
                 value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})}
-                className="w-full bg-[#464153] text-white text-sm px-3 py-3 rounded-xl border-none outline-none cursor-pointer"
+                className="w-full bg-[#464153] text-white text-sm px-3 py-3 rounded-xl border-none outline-none cursor-pointer appearance-none focus:ring-1 focus:ring-[#D2C9D8]"
               >
                 <option value="member">Member (Standard)</option>
-                <option value="admin">Admin (Manager)</option>
+                <option value="manager">Manager (Elevated)</option>
               </select>
             </div>
           </div>
 
-          {/* Email */}
           <div>
-            <label className="text-[10px] font-bold text-[#A29EAB] uppercase tracking-wider mb-1 block">Email Address</label>
+            <label className="text-[10px] font-bold text-[#A29EAB] uppercase tracking-wider mb-1 block">Work Email</label>
             <div className="relative">
               <FaEnvelope className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A29EAB] text-xs" />
               <input 
@@ -89,9 +92,8 @@ export default function AddMemberModal({ token, onClose, onSuccess }) {
             </div>
           </div>
 
-          {/* Password */}
           <div>
-            <label className="text-[10px] font-bold text-[#A29EAB] uppercase tracking-wider mb-1 block">Temporary Password</label>
+            <label className="text-[10px] font-bold text-[#A29EAB] uppercase tracking-wider mb-1 block">Temporary Access Key</label>
             <div className="relative">
               <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A29EAB] text-xs" />
               <input 
@@ -102,25 +104,24 @@ export default function AddMemberModal({ token, onClose, onSuccess }) {
             </div>
           </div>
 
-          {/* Title & Skills */}
           <div className="grid grid-cols-2 gap-5">
             <div>
-              <label className="text-[10px] font-bold text-[#A29EAB] uppercase tracking-wider mb-1 block">Job Title</label>
+              <label className="text-[10px] font-bold text-[#A29EAB] uppercase tracking-wider mb-1 block">Operational Title</label>
               <div className="relative">
                 <FaBriefcase className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A29EAB] text-xs" />
                 <input 
-                  type="text" placeholder="e.g. Senior Dev"
+                  type="text" placeholder="e.g. Lead Designer"
                   value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})}
                   className="w-full bg-[#464153] text-white text-sm pl-9 pr-3 py-3 rounded-xl border-none outline-none focus:ring-1 focus:ring-[#D2C9D8]"
                 />
               </div>
             </div>
              <div>
-              <label className="text-[10px] font-bold text-[#A29EAB] uppercase tracking-wider mb-1 block">Skills (comma sep)</label>
+              <label className="text-[10px] font-bold text-[#A29EAB] uppercase tracking-wider mb-1 block">Specializations</label>
               <div className="relative">
                 <FaCode className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A29EAB] text-xs" />
                 <input 
-                  type="text" placeholder="React, Node, UI"
+                  type="text" placeholder="UI, UX, React"
                   value={formData.skills} onChange={e => setFormData({...formData, skills: e.target.value})}
                   className="w-full bg-[#464153] text-white text-sm pl-9 pr-3 py-3 rounded-xl border-none outline-none focus:ring-1 focus:ring-[#D2C9D8]"
                 />
@@ -130,9 +131,9 @@ export default function AddMemberModal({ token, onClose, onSuccess }) {
 
           <button 
             type="submit" disabled={loading}
-            className="w-full mt-4 bg-white text-[#35313F] font-bold py-3.5 rounded-xl hover:bg-gray-100 transition-colors shadow-lg"
+            className="w-full mt-4 bg-white text-[#35313F] font-bold py-3.5 rounded-xl hover:bg-[#D2C9D8] transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2"
           >
-            {loading ? "Adding Agent..." : "Confirm & Add to Team"}
+            {loading ? "Initializing..." : <><FaSave /> Confirm Recruitment</>}
           </button>
 
         </form>
