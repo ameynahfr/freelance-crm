@@ -19,8 +19,8 @@ const ProtectedRoute = ({ children }) => {
 
   if (loading) {
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-[#D2C9D8]">
-        <div className="bg-[#35313F] px-5 py-2.5 rounded-full text-white text-sm font-medium animate-pulse">
+      <div className="h-screen w-full flex items-center justify-center bg-[var(--os-canvas)]">
+        <div className="bg-[var(--os-bg)] px-5 py-2.5 rounded-full text-[var(--os-text-main)] text-sm font-medium animate-pulse">
           Syncing Workspace...
         </div>
       </div>

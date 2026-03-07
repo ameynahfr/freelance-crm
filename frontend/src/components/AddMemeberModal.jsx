@@ -39,16 +39,16 @@ export default function AddMemberModal({ onClose, onSuccess }) {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-[#35313F]/80 backdrop-blur-sm transition-opacity" onClick={onClose} />
+      <div className="absolute inset-0 bg-[var(--os-bg)]/80 backdrop-blur-sm transition-opacity" onClick={onClose} />
       
-      <div className="relative w-full max-w-lg bg-[#35313F] rounded-[2rem] border border-white/5 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-lg bg-[var(--os-bg)] rounded-[2rem] border border-[var(--os-border)] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         
-        <div className="px-8 py-6 bg-[#464153]/30 border-b border-white/5 flex justify-between items-center">
+        <div className="px-8 py-6 bg-[var(--os-surface)]/30 border-b border-[var(--os-border)] flex justify-between items-center">
           <div>
-            <h3 className="text-white font-bold text-lg tracking-tight">Recruit Agent</h3>
-            <p className="text-[10px] text-[#A29EAB] uppercase font-bold tracking-widest">New Personnel Entry</p>
+            <h3 className="text-[var(--os-text-main)] font-bold text-lg tracking-tight">Recruit Agent</h3>
+            <p className="text-[10px] text-[var(--os-text-muted)] uppercase font-bold tracking-widest">New Personnel Entry</p>
           </div>
-          <button onClick={onClose} className="text-[#A29EAB] hover:text-white transition-colors bg-white/5 p-2 rounded-full hover:bg-white/10">
+          <button onClick={onClose} className="text-[var(--os-text-muted)] hover:text-[var(--os-text-main)] transition-colors bg-white/5 p-2 rounded-full hover:bg-white/10">
             <FaTimes size={14} />
           </button>
         </div>
@@ -57,22 +57,22 @@ export default function AddMemberModal({ onClose, onSuccess }) {
           
           <div className="grid grid-cols-2 gap-5">
             <div>
-              <label className="text-[10px] font-bold text-[#A29EAB] uppercase tracking-wider mb-1 block">Full Name</label>
+              <label className="text-[10px] font-bold text-[var(--os-text-muted)] uppercase tracking-wider mb-1 block">Full Name</label>
               <div className="relative">
-                <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A29EAB] text-xs" />
+                <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--os-text-muted)] text-xs" />
                 <input 
                   type="text" required placeholder="Agent Name"
                   value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})}
-                  className="w-full bg-[#464153] text-white text-sm pl-9 pr-3 py-3 rounded-xl border-none outline-none focus:ring-1 focus:ring-[#D2C9D8]"
+                  className="w-full bg-[var(--os-surface)] text-[var(--os-text-main)] text-sm pl-9 pr-3 py-3 rounded-xl border-none outline-none focus:ring-1 focus:ring-[#D2C9D8]"
                 />
               </div>
             </div>
             
             <div>
-              <label className="text-[10px] font-bold text-[#A29EAB] uppercase tracking-wider mb-1 block">Clearance</label>
+              <label className="text-[10px] font-bold text-[var(--os-text-muted)] uppercase tracking-wider mb-1 block">Clearance</label>
               <select 
                 value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})}
-                className="w-full bg-[#464153] text-white text-sm px-3 py-3 rounded-xl border-none outline-none cursor-pointer appearance-none focus:ring-1 focus:ring-[#D2C9D8]"
+                className="w-full bg-[var(--os-surface)] text-[var(--os-text-main)] text-sm px-3 py-3 rounded-xl border-none outline-none cursor-pointer appearance-none focus:ring-1 focus:ring-[#D2C9D8]"
               >
                 <option value="member">Member (Standard)</option>
                 <option value="manager">Manager (Elevated)</option>
@@ -81,49 +81,49 @@ export default function AddMemberModal({ onClose, onSuccess }) {
           </div>
 
           <div>
-            <label className="text-[10px] font-bold text-[#A29EAB] uppercase tracking-wider mb-1 block">Work Email</label>
+            <label className="text-[10px] font-bold text-[var(--os-text-muted)] uppercase tracking-wider mb-1 block">Work Email</label>
             <div className="relative">
-              <FaEnvelope className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A29EAB] text-xs" />
+              <FaEnvelope className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--os-text-muted)] text-xs" />
               <input 
                 type="email" required placeholder="agent@agency.com"
                 value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})}
-                className="w-full bg-[#464153] text-white text-sm pl-9 pr-3 py-3 rounded-xl border-none outline-none focus:ring-1 focus:ring-[#D2C9D8]"
+                className="w-full bg-[var(--os-surface)] text-[var(--os-text-main)] text-sm pl-9 pr-3 py-3 rounded-xl border-none outline-none focus:ring-1 focus:ring-[#D2C9D8]"
               />
             </div>
           </div>
 
           <div>
-            <label className="text-[10px] font-bold text-[#A29EAB] uppercase tracking-wider mb-1 block">Temporary Access Key</label>
+            <label className="text-[10px] font-bold text-[var(--os-text-muted)] uppercase tracking-wider mb-1 block">Temporary Access Key</label>
             <div className="relative">
-              <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A29EAB] text-xs" />
+              <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--os-text-muted)] text-xs" />
               <input 
                 type="password" required placeholder="••••••••"
                 value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})}
-                className="w-full bg-[#464153] text-white text-sm pl-9 pr-3 py-3 rounded-xl border-none outline-none focus:ring-1 focus:ring-[#D2C9D8]"
+                className="w-full bg-[var(--os-surface)] text-[var(--os-text-main)] text-sm pl-9 pr-3 py-3 rounded-xl border-none outline-none focus:ring-1 focus:ring-[#D2C9D8]"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-5">
             <div>
-              <label className="text-[10px] font-bold text-[#A29EAB] uppercase tracking-wider mb-1 block">Operational Title</label>
+              <label className="text-[10px] font-bold text-[var(--os-text-muted)] uppercase tracking-wider mb-1 block">Operational Title</label>
               <div className="relative">
-                <FaBriefcase className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A29EAB] text-xs" />
+                <FaBriefcase className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--os-text-muted)] text-xs" />
                 <input 
                   type="text" placeholder="e.g. Lead Designer"
                   value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})}
-                  className="w-full bg-[#464153] text-white text-sm pl-9 pr-3 py-3 rounded-xl border-none outline-none focus:ring-1 focus:ring-[#D2C9D8]"
+                  className="w-full bg-[var(--os-surface)] text-[var(--os-text-main)] text-sm pl-9 pr-3 py-3 rounded-xl border-none outline-none focus:ring-1 focus:ring-[#D2C9D8]"
                 />
               </div>
             </div>
              <div>
-              <label className="text-[10px] font-bold text-[#A29EAB] uppercase tracking-wider mb-1 block">Specializations</label>
+              <label className="text-[10px] font-bold text-[var(--os-text-muted)] uppercase tracking-wider mb-1 block">Specializations</label>
               <div className="relative">
-                <FaCode className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A29EAB] text-xs" />
+                <FaCode className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--os-text-muted)] text-xs" />
                 <input 
                   type="text" placeholder="UI, UX, React"
                   value={formData.skills} onChange={e => setFormData({...formData, skills: e.target.value})}
-                  className="w-full bg-[#464153] text-white text-sm pl-9 pr-3 py-3 rounded-xl border-none outline-none focus:ring-1 focus:ring-[#D2C9D8]"
+                  className="w-full bg-[var(--os-surface)] text-[var(--os-text-main)] text-sm pl-9 pr-3 py-3 rounded-xl border-none outline-none focus:ring-1 focus:ring-[#D2C9D8]"
                 />
               </div>
             </div>
@@ -131,7 +131,7 @@ export default function AddMemberModal({ onClose, onSuccess }) {
 
           <button 
             type="submit" disabled={loading}
-            className="w-full mt-4 bg-white text-[#35313F] font-bold py-3.5 rounded-xl hover:bg-[#D2C9D8] transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2"
+            className="w-full mt-4 bg-white text-[#35313F] font-bold py-3.5 rounded-xl hover:bg-[var(--os-canvas)] transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2"
           >
             {loading ? "Initializing..." : <><FaSave /> Confirm Recruitment</>}
           </button>

@@ -101,34 +101,34 @@ export default function MyTasks() {
   const filtered = tasks.filter(t => t.title.toLowerCase().includes(searchTerm.toLowerCase()));
 
   if (authLoading || loading || !user) return (
-    <div className="h-screen flex items-center justify-center bg-[#D2C9D8]">
-      <div className="bg-[#35313F] px-6 py-3 rounded-full text-white text-sm animate-pulse">Syncing Mandates...</div>
+    <div className="h-screen flex items-center justify-center bg-[var(--os-canvas)]">
+      <div className="bg-[var(--os-bg)] px-6 py-3 rounded-full text-[var(--os-text-main)] text-sm animate-pulse">Syncing Mandates...</div>
     </div>
   );
 
   return (
-    <div className="h-screen w-full bg-[#D2C9D8] p-0 md:p-3 lg:p-4 font-sans text-white overflow-hidden flex">
-      <div className="flex flex-1 bg-[#35313F] rounded-none md:rounded-[1.5rem] shadow-xl overflow-hidden relative border border-white/5">
+    <div className="h-screen w-full bg-[var(--os-canvas)] p-0 md:p-3 lg:p-4 font-sans text-[var(--os-text-main)] overflow-hidden flex">
+      <div className="flex flex-1 bg-[var(--os-bg)] rounded-none md:rounded-[1.5rem] shadow-xl overflow-hidden relative border border-[var(--os-border)]">
         <Sidebar />
         <div className="flex-1 flex flex-col relative overflow-hidden">
           <Header />
           <main className="flex-1 overflow-hidden flex flex-col">
-            <div className="bg-[#35313F]/95 backdrop-blur-sm border-b border-[#5B5569]/30 px-8 py-4 flex justify-between items-center">
+            <div className="bg-[var(--os-bg)]/95 backdrop-blur-sm border-b border-[#5B5569]/30 px-8 py-4 flex justify-between items-center">
               <div>
                 <h1 className="text-xl font-bold">{project ? project.title : "My Workload"}</h1>
-                <p className="text-[10px] text-[#A29EAB] uppercase font-bold tracking-widest">Active Kanban Workspace</p>
+                <p className="text-[10px] text-[var(--os-text-muted)] uppercase font-bold tracking-widest">Active Kanban Workspace</p>
               </div>
               <div className="flex gap-3">
                 <div className="relative">
-                  <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A29EAB]" size={10} />
+                  <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--os-text-muted)]" size={10} />
                   <input 
                     type="text" placeholder="Search..." value={searchTerm} 
                     onChange={(e) => setSearchTerm(e.target.value)} 
-                    className="bg-[#464153] text-white text-xs pl-8 pr-3 py-2.5 rounded-xl border-none outline-none w-48 focus:ring-1 focus:ring-[#D2C9D8]" 
+                    className="bg-[var(--os-surface)] text-[var(--os-text-main)] text-xs pl-8 pr-3 py-2.5 rounded-xl border-none outline-none w-48 focus:ring-1 focus:ring-[#D2C9D8]" 
                   />
                 </div>
                 {(user.role === 'owner' || user.role === 'manager') && (
-                  <button onClick={() => { setEditingTask(null); setIsModalOpen(true); }} className="bg-white text-[#35313F] px-4 py-2 rounded-xl text-xs font-bold hover:bg-[#D2C9D8] transition-colors">
+                  <button onClick={() => { setEditingTask(null); setIsModalOpen(true); }} className="bg-white text-[#35313F] px-4 py-2 rounded-xl text-xs font-bold hover:bg-[var(--os-canvas)] transition-colors">
                     + New Task
                   </button>
                 )}

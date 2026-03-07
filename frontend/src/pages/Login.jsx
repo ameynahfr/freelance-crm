@@ -32,14 +32,14 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#D2C9D8] p-4 font-sans text-white">
-      <div className="flex w-full max-w-4xl bg-[#35313F] rounded-[1.5rem] shadow-xl overflow-hidden min-h-[500px]">
+    <div className="min-h-screen flex items-center justify-center bg-[var(--os-canvas)] p-4 font-sans text-[var(--os-text-main)]">
+      <div className="flex w-full max-w-4xl bg-[var(--os-bg)] rounded-[1.5rem] shadow-xl overflow-hidden min-h-[500px]">
         {/* LEFT SIDE - Branding */}
         <div className="hidden lg:flex lg:w-1/2 p-10 flex-col justify-between">
           <div>
             <div className="text-2xl font-extrabold tracking-tight mb-6 text-[#D2C9D8]">CRM</div>
-            <h1 className="text-3xl font-bold tracking-tight text-white mb-3">FreelanceCRM</h1>
-            <p className="text-[#A29EAB] max-w-sm text-sm font-medium leading-relaxed">
+            <h1 className="text-3xl font-bold tracking-tight text-[var(--os-text-main)] mb-3">FreelanceCRM</h1>
+            <p className="text-[var(--os-text-muted)] max-w-sm text-sm font-medium leading-relaxed">
               The simple way to manage clients, invoices, and projects — built for freelancers who value clarity.
             </p>
           </div>
@@ -83,7 +83,7 @@ export default function Login() {
                   className="w-full px-5 py-3 rounded-full bg-white border-none text-[#35313F] placeholder-[#A29EAB] focus:ring-4 focus:ring-[#D2C9D8] transition-all text-sm font-medium pr-12 shadow-sm outline-none"
                   placeholder="••••••••"
                 />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#A29EAB] hover:text-[#35313F] transition-colors">
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--os-text-muted)] hover:text-[#35313F] transition-colors">
                   {showPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
                 </button>
               </div>
@@ -91,7 +91,7 @@ export default function Login() {
 
             <button 
               type="submit" disabled={loading}
-              className="w-full py-3 rounded-full font-bold text-white text-base bg-[#35313F] hover:bg-[#2A2732] transition-all duration-200 shadow-md disabled:opacity-50"
+              className="w-full py-3 rounded-full font-bold text-[var(--os-text-main)] text-base bg-[var(--os-bg)] hover:bg-[#2A2732] transition-all duration-200 shadow-md disabled:opacity-50"
             >
               {loading ? "Authenticating..." : "Sign In"}
             </button>
@@ -108,11 +108,11 @@ export default function Login() {
 
 function FeatureItem({ number, title, desc }) {
   return (
-    <div className="bg-[#464153] p-4 rounded-2xl flex items-center gap-4 border border-white/5">
+    <div className="bg-[var(--os-surface)] p-4 rounded-2xl flex items-center gap-4 border border-[var(--os-border)]">
       <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-[#35313F] text-sm font-bold shadow-sm">{number}</div>
       <div>
-        <p className="font-bold text-white text-sm">{title}</p>
-        <p className="text-[#A29EAB] text-xs mt-0.5">{desc}</p>
+        <p className="font-bold text-[var(--os-text-main)] text-sm">{title}</p>
+        <p className="text-[var(--os-text-muted)] text-xs mt-0.5">{desc}</p>
       </div>
     </div>
   );

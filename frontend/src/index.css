@@ -1,10 +1,48 @@
-
 @import "tailwindcss";
-/* Add to your global CSS file */
+
+/* 🌙 DEFAULT THEME: DARK MODE (Original Agency OS) */
+:root {
+  --os-bg: #35313F;
+  --os-canvas: #D2C9D8;
+  --os-surface: #464153;
+  --os-text-main: #FFFFFF;
+  --os-text-muted: #A29EAB;
+  --os-border: rgba(255, 255, 255, 0.05);
+  --os-accent: #10B981;
+}
+
+/* ☀️ OVERRIDE THEME: LIGHT MODE */
+[data-theme='light'] {
+  --os-bg: #FFFFFF;
+  --os-canvas: #F3F4F6;
+  --os-surface: #F9FAFB;
+  --os-text-main: #1F2937;
+  --os-text-muted: #6B7280;
+  --os-border: rgba(0, 0, 0, 0.08);
+  --os-accent: #6366F1;
+}
+
+/* 🚀 FULL-SCREEN OS RESET */
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100vh;
+  background-color: var(--os-bg);
+  color: var(--os-text-main);
+  overflow: hidden; /* Prevents double scrollbars */
+}
+
+/* GLOBAL TRANSITION: Makes the flip feel premium */
+* {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+/* CUSTOM SCROLLBAR */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: #5B5569;
+  background-color: var(--os-border);
   border-radius: 10px;
 }

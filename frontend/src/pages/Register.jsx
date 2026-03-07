@@ -42,20 +42,20 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#D2C9D8] p-4 font-sans text-white">
-      <div className="flex w-full max-w-5xl bg-[#35313F] rounded-[2rem] shadow-2xl overflow-hidden min-h-[600px]">
+    <div className="min-h-screen flex items-center justify-center bg-[var(--os-canvas)] p-4 font-sans text-[var(--os-text-main)]">
+      <div className="flex w-full max-w-5xl bg-[var(--os-bg)] rounded-[2rem] shadow-2xl overflow-hidden min-h-[600px]">
         
         {/* LEFT: Branding */}
         <div className="hidden lg:flex lg:w-2/5 p-12 flex-col justify-between bg-gradient-to-b from-[#464153] to-[#35313F]">
           <div>
-            <div className="w-10 h-10 bg-[#D2C9D8] rounded-xl flex items-center justify-center text-[#35313F] font-black text-2xl mb-8">F</div>
-            <h1 className="text-4xl font-bold text-white mb-4">Start your Agency.</h1>
-            <p className="text-[#A29EAB] leading-relaxed">The operating system for modern freelancers and small studios.</p>
+            <div className="w-10 h-10 bg-[var(--os-canvas)] rounded-xl flex items-center justify-center text-[#35313F] font-black text-2xl mb-8">F</div>
+            <h1 className="text-4xl font-bold text-[var(--os-text-main)] mb-4">Start your Agency.</h1>
+            <p className="text-[var(--os-text-muted)] leading-relaxed">The operating system for modern freelancers and small studios.</p>
           </div>
           <div className="space-y-4">
-            <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
-              <p className="text-white font-bold text-sm">Role: Agency Owner</p>
-              <p className="text-[#A29EAB] text-xs">You'll have full control over projects and team.</p>
+            <div className="bg-white/5 p-4 rounded-2xl border border-[var(--os-border)]">
+              <p className="text-[var(--os-text-main)] font-bold text-sm">Role: Agency Owner</p>
+              <p className="text-[var(--os-text-muted)] text-xs">You'll have full control over projects and team.</p>
             </div>
           </div>
         </div>
@@ -103,7 +103,7 @@ export default function Register() {
               </div>
             </div>
 
-            <button type="submit" disabled={loading} className="w-full mt-8 py-4 bg-[#35313F] text-white rounded-2xl font-bold shadow-lg hover:bg-black transition-all transform active:scale-95 disabled:opacity-50">
+            <button type="submit" disabled={loading} className="w-full mt-8 py-4 bg-[var(--os-bg)] text-[var(--os-text-main)] rounded-2xl font-bold shadow-lg hover:bg-black transition-all transform active:scale-95 disabled:opacity-50">
               {loading ? "Launching..." : "Launch my OS"}
             </button>
 

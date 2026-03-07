@@ -28,19 +28,30 @@ const userSchema = new mongoose.Schema(
       enum: ["owner", "manager", "member"], 
       default: "member",
     },
-
-    // 🎨 NEW: Store the avatar choice
     profilePic: {
       type: String,
       default: "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
     }, 
-
     
+    // 🚀 NEW FIELDS FOR OS PROFILE
     title: {
       type: String,
-      default: "Agency Member",
+      default: "",
     },
-    skills: [{ type: String }],
+    location: {
+      type: String,
+      default: "",
+    },
+    bio: {
+      type: String,
+      default: "",
+    },
+    skills: { 
+      type: [String], 
+      default: [] 
+    },
+    
+    // Legacy / Admin fields
     hourlyRate: {
       type: Number,
       default: 0, 
@@ -55,7 +66,7 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// 🔐 FIX: Removed 'next' argument. When using async, Mongoose handles the promise return automatically.
+// Password hashing middleware
 userSchema.pre("save", async function () {
   if (!this.isModified("password")) return;
 

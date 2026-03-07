@@ -41,22 +41,22 @@ export default function Sidebar() {
     <>
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="md:hidden fixed top-4 left-4 z-50 p-2 bg-[#35313F] text-white rounded-xl shadow-lg border border-white/10"
+        className="md:hidden fixed top-4 left-4 z-50 p-2 bg-[var(--os-bg)] text-[var(--os-text-main)] rounded-xl shadow-lg border border-white/10"
       >
         {isOpen ? <FaTimes /> : <FaBars />}
       </button>
 
       <aside 
         className={`
-          fixed inset-y-0 left-0 z-40 w-64 bg-[#35313F] border-r border-[#5B5569]/30 transition-transform duration-300 ease-in-out
+          fixed inset-y-0 left-0 z-40 w-64 bg-[var(--os-bg)] border-r border-[#5B5569]/30 transition-transform duration-300 ease-in-out
           md:relative md:translate-x-0 flex flex-col justify-between shadow-2xl md:shadow-none
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
         <div className="p-8 pb-4">
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-8 h-8 bg-[#D2C9D8] rounded-lg flex items-center justify-center text-[#35313F] font-black text-xl">F</div>
-            <h1 className="text-xl font-bold text-white tracking-tight">Freelance<span className="text-[#A29EAB]">OS</span></h1>
+            <div className="w-8 h-8 bg-[var(--os-canvas)] rounded-lg flex items-center justify-center text-[#35313F] font-black text-xl">F</div>
+            <h1 className="text-xl font-bold text-[var(--os-text-main)] tracking-tight">Freelance<span className="text-[var(--os-text-muted)]">OS</span></h1>
           </div>
           <div className="h-px w-full bg-gradient-to-r from-transparent via-[#5B5569]/50 to-transparent" />
         </div>
@@ -70,8 +70,8 @@ export default function Sidebar() {
               className={`
                 flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-200 group
                 ${isActive(item.path) 
-                  ? "bg-[#D2C9D8] text-[#35313F] shadow-lg shadow-[#D2C9D8]/20 translate-x-1" 
-                  : "text-[#A29EAB] hover:bg-white/5 hover:text-white hover:translate-x-1"}
+                  ? "bg-[var(--os-canvas)] text-[#35313F] shadow-lg shadow-[#D2C9D8]/20 translate-x-1" 
+                  : "text-[var(--os-text-muted)] hover:bg-white/5 hover:text-[var(--os-text-main)] hover:translate-x-1"}
               `}
             >
               <span className={`text-lg transition-transform ${isActive(item.path) ? "scale-110" : "group-hover:scale-110"}`}>
@@ -89,8 +89,8 @@ export default function Sidebar() {
             className={`
               flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all
               ${isActive("/profile") 
-                ? "bg-[#464153] text-white border border-white/10 shadow-md" 
-                : "text-[#A29EAB] hover:bg-white/5 hover:text-white"}
+                ? "bg-[var(--os-surface)] text-[var(--os-text-main)] border border-white/10 shadow-md" 
+                : "text-[var(--os-text-muted)] hover:bg-white/5 hover:text-[var(--os-text-main)]"}
             `}
           >
             <FaUser /> Profile

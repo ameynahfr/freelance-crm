@@ -1,13 +1,15 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import Sidebar from "../components/Sidebar.jsx";
 import Header from "../components/Header.jsx";
 import { useAuth } from "../hooks/useAuth.jsx";
 import ProjectModal from "../components/ProjectModal";
 import { Link, useNavigate } from "react-router-dom";
-import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
-import { FaEdit, FaPlus, FaSearch } from "react-icons/fa";
+import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { 
+  FaEdit, FaPlus, FaRocket, FaCheckCircle, 
+  FaExclamationTriangle, FaArrowUp, FaBriefcase, FaClock 
+} from "react-icons/fa";
 
-// 🚀 API LAYER IMPORTS
 import { getDashboardMetrics } from "../api/dashboardApi";
 
 export default function Dashboard() {
@@ -17,11 +19,9 @@ export default function Dashboard() {
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
 
   const fetchMetrics = useCallback(async () => {
     try {
-      // 🚀 Clean API Call - No hardcoded URLs or manual headers
       const res = await getDashboardMetrics();
       setMetrics(res.data);
     } catch (err) {
@@ -38,169 +38,144 @@ export default function Dashboard() {
     }
   }, [authLoading, isAuthenticated, fetchMetrics, navigate]);
 
-  const filteredProjects = metrics?.projectProgressData?.filter(p => 
-    p.title?.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
-
-  const filteredTasks = metrics?.upcomingTasks?.filter(t => 
-    t.title?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    t.project?.title?.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  // 🚀 FIX 1: Defensive high priority check
+  const highPriorityMandates = useMemo(() => {
+    const data = metrics?.projectProgressData || [];
+    return data.filter(p => (p.progress || 0) < 40).slice(0, 3);
+  }, [metrics]);
 
   const isManager = user?.role === "owner" || user?.role === "manager";
 
   if (authLoading || (loading && !metrics)) return (
-    <div className="h-screen w-full flex items-center justify-center bg-[#D2C9D8]">
-      <div className="bg-[#35313F] px-5 py-2.5 rounded-full text-white text-sm font-medium animate-pulse">Syncing Metrics...</div>
+    <div className="h-screen w-full flex items-center justify-center bg-[var(--os-canvas)]">
+      <div className="bg-[var(--os-bg)] px-8 py-3 rounded-2xl text-[var(--os-text-main)] text-xs font-black uppercase tracking-widest animate-pulse border border-[var(--os-border)] shadow-2xl">
+        Synchronizing Intelligence...
+      </div>
     </div>
   );
 
-  if (!metrics) return <div className="h-screen flex items-center justify-center text-white bg-[#35313F]">Connection Error. Refresh.</div>;
+  // If metrics still missing after loading, show error instead of crashing
+  if (!metrics) return (
+    <div className="h-screen flex items-center justify-center text-[var(--os-text-main)] bg-[var(--os-bg)]">
+       Telemetry Lost. Check Connection.
+    </div>
+  );
 
   return (
-    <div className="h-screen w-full bg-[#D2C9D8] p-0 md:p-3 lg:p-4 font-sans text-white overflow-hidden flex">
-      <div className="flex flex-1 bg-[#35313F] rounded-none md:rounded-[1.5rem] shadow-xl overflow-hidden relative">
+    <div className="h-screen w-full bg-[var(--os-canvas)] p-0 md:p-3 flex font-sans text-[var(--os-text-main)] overflow-hidden">
+      <div className="flex flex-1 bg-[var(--os-bg)] rounded-none md:rounded-3xl shadow-2xl overflow-hidden relative border border-[var(--os-border)]">
         <Sidebar />
-        <div className="flex-1 flex flex-col relative z-10 overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden">
           <Header />
-          <main className="flex-1 overflow-y-auto custom-scrollbar relative">
-            <div className="sticky top-0 z-30 bg-[#35313F]/95 backdrop-blur-sm border-b border-[#5B5569]/30 py-4 px-8 flex justify-between items-center">
-              <h1 className="text-lg font-bold">Overview</h1>
-              <div className="flex gap-3">
-                <div className="hidden md:flex bg-[#464153] px-4 py-2 rounded-full items-center gap-2 border border-white/5">
-                  <FaSearch className="text-[#A29EAB]" size={12}/>
-                  <input 
-                    type="text" 
-                    placeholder="Search metrics..." 
-                    value={searchTerm} 
-                    onChange={(e) => setSearchTerm(e.target.value)} 
-                    className="bg-transparent border-none outline-none text-xs w-32" 
-                  />
+          
+          <main className="flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-8">
+            <div className="max-w-[1500px] mx-auto space-y-8">
+              
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <div className="lg:col-span-1">
+                  <div className="bg-[var(--os-surface)] rounded-[2.5rem] p-8 border border-[var(--os-border)] shadow-xl relative overflow-hidden flex flex-col items-center text-center">
+                    <div className="absolute top-0 inset-x-0 h-20 bg-gradient-to-b from-[var(--os-accent)]/10 to-transparent" />
+                    <div className="w-24 h-24 rounded-[2rem] border-4 border-[var(--os-bg)] bg-[var(--os-canvas)] overflow-hidden shadow-2xl z-10 mb-4">
+                      <img src={user?.profilePic} className="w-full h-full object-cover" alt="avatar" />
+                    </div>
+                    <h2 className="text-xl font-black tracking-tighter">{user?.name}</h2>
+                    <p className="text-[9px] font-black text-[var(--os-text-muted)] uppercase tracking-[0.3em] mb-6">{user?.role} ACCESS</p>
+                    <Link to="/profile" className="w-full flex items-center justify-center gap-2 bg-[var(--os-bg)] p-3 rounded-xl text-[10px] font-black uppercase tracking-widest border border-[var(--os-border)]">
+                      <FaEdit size={10} /> Profile Params
+                    </Link>
+                  </div>
                 </div>
-                {isManager && (
-                  <button 
-                    onClick={() => setShowModal(true)} 
-                    className="bg-white text-[#35313F] text-xs font-bold px-4 py-2 rounded-full hover:bg-gray-100 transition shadow-lg"
-                  >
-                    + New Project
-                  </button>
-                )}
+
+                <div className="lg:col-span-3 grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <MetricCard label="Active" value={metrics?.activeProjects || 0} icon={<FaRocket className="text-[var(--os-accent)]"/>} />
+                  <MetricCard label="Finalized" value={metrics?.completedProjects || 0} icon={<FaCheckCircle className="text-blue-400"/>} />
+                  <MetricCard label="Critical" value={metrics?.overdueTasks || 0} icon={<FaExclamationTriangle className="text-rose-400"/>} urgent={(metrics?.overdueTasks || 0) > 0} />
+                  {isManager ? (
+                    <MetricCard label="Revenue" value={`$${(metrics?.totalEarnings || 0).toLocaleString()}`} icon={<FaBriefcase className="text-amber-400"/>} />
+                  ) : (
+                    <MetricCard label="Pending" value={metrics?.pendingProjects || 0} icon={<FaClock className="text-amber-400"/>} />
+                  )}
+                </div>
               </div>
-            </div>
 
-            <div className="max-w-[1600px] mx-auto w-full px-8 py-6">
-              <div className="grid grid-cols-1 xl:grid-cols-4 gap-5">
-                <div className="xl:col-span-1">
-                  <div className="bg-[#464153] rounded-[2rem] p-8 text-center border border-white/5 shadow-xl relative overflow-hidden h-full">
-                    <div className="absolute top-0 left-0 w-full h-24 bg-white/5" />
-                    <div className="relative mt-4 mb-4">
-                      <div className="w-24 h-24 rounded-full mx-auto border-4 border-[#35313F] bg-[#D2C9D8] overflow-hidden flex items-center justify-center shadow-lg">
-                        {user?.profilePic ? (
-                          <img src={user.profilePic} className="w-full h-full object-cover" alt="avatar" />
-                        ) : (
-                          <span className="text-xl font-bold text-[#35313F]">{user?.name?.charAt(0).toUpperCase()}</span>
-                        )}
-                      </div>
-                    </div>
-                    <h2 className="text-xl font-bold">{user?.name}</h2>
-                    <p className="text-[10px] font-bold text-[#A29EAB] uppercase tracking-widest">{user?.role}</p>
-                    <div className="mt-6 space-y-3">
-                      <div className="bg-[#35313F] p-3 rounded-xl border border-white/5">
-                        <p className="text-[9px] text-[#A29EAB] uppercase font-bold tracking-tighter">Live Projects</p>
-                        <p className="text-lg font-bold">{metrics.activeProjects}</p>
-                      </div>
-                      <Link to="/profile" className="flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 p-3 rounded-xl text-xs font-bold transition">
-                        <FaEdit size={10} /> Edit Identity
-                      </Link>
-                    </div>
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                <div className="xl:col-span-2 bg-[var(--os-surface)] rounded-[2.5rem] p-8 border border-[var(--os-border)] shadow-xl">
+                  <h3 className="text-xs font-black uppercase tracking-[0.2em] text-[var(--os-text-muted)] mb-8">Performance Analytics</h3>
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      {/* 🚀 FIX 2: Ensure data is always an array */}
+                      <AreaChart data={metrics?.earningsOverTime || []}>
+                        <defs>
+                          <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="var(--os-accent)" stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor="var(--os-accent)" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--os-text-muted)" opacity={0.1} vertical={false} />
+                        <XAxis dataKey="day" hide />
+                        <Tooltip contentStyle={{backgroundColor: 'var(--os-surface)', border: '1px solid var(--os-border)', borderRadius: '15px'}} />
+                        <Area type="monotone" dataKey="earnings" stroke="var(--os-accent)" strokeWidth={3} fill="url(#colorValue)" />
+                      </AreaChart>
+                    </ResponsiveContainer>
                   </div>
                 </div>
 
-                <div className="xl:col-span-3 space-y-5">
-                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                    <StatCard label="Active" value={metrics.activeProjects} />
-                    <StatCard label="Pending" value={metrics.pendingProjects} />
-                    <StatCard label="Overdue" value={metrics.overdueTasks} color="text-rose-400" />
-                    {isManager && (
-                      <>
-                        <StatCard label="Revenue" value={`$${(metrics.totalEarnings || 0).toLocaleString()}`} />
-                        <StatCard label="Outstanding" value={`$${(metrics.unpaidEarnings || 0).toLocaleString()}`} />
-                        <StatCard label="Completed" value={metrics.completedProjects} />
-                      </>
-                    )}
-                  </div>
-
-                  <div className={`grid grid-cols-1 ${isManager ? 'lg:grid-cols-3' : 'lg:grid-cols-1'} gap-5`}>
-                    {isManager && (
-                      <div className="lg:col-span-2 bg-[#464153] rounded-3xl p-6 border border-white/5 shadow-inner">
-                        <h3 className="text-sm font-bold mb-6">Revenue Performance</h3>
-                        <div className="h-56">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={metrics.earningsOverTime}>
-                              <CartesianGrid strokeDasharray="3 3" stroke="#5B5569" vertical={false} opacity={0.2} />
-                              <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fill: '#A29EAB', fontSize: 10}} />
-                              <Tooltip contentStyle={{backgroundColor: '#35313F', border: 'none', borderRadius: '10px'}} />
-                              <Line type="monotone" dataKey="earnings" stroke="#D2C9D8" strokeWidth={3} dot={{r: 4, fill: '#35313F'}} />
-                            </LineChart>
-                          </ResponsiveContainer>
+                <div className="bg-[var(--os-surface)] rounded-[2.5rem] p-8 border border-[var(--os-border)] shadow-xl">
+                  <h3 className="text-xs font-black uppercase tracking-[0.2em] text-[var(--os-text-muted)] mb-6">Tactical Priority</h3>
+                  <div className="space-y-6">
+                    {highPriorityMandates.map(p => (
+                      <div key={p._id} className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <p className="text-xs font-black truncate max-w-[150px]">{p.title}</p>
+                          <span className="text-[9px] font-black text-rose-400 uppercase">Alert</span>
+                        </div>
+                        <div className="w-full bg-[var(--os-bg)] h-1.5 rounded-full overflow-hidden">
+                          <div className="bg-rose-400 h-full" style={{width: `${p.progress}%`}} />
                         </div>
                       </div>
-                    )}
-                    <div className={`${isManager ? 'lg:col-span-1' : ''} bg-[#F2EAE3] rounded-3xl p-6 text-[#35313F] shadow-inner`}>
-                      <h3 className="text-sm font-bold mb-4">Project Health</h3>
-                      <div className="space-y-4">
-                        {filteredProjects.map(p => (
-                          <div key={p._id}>
-                            <div className="flex justify-between text-[10px] font-bold mb-1">
-                              <span className="truncate pr-2">{p.title}</span>
-                              <span>{p.progress}%</span>
-                            </div>
-                            <div className="w-full bg-white h-1.5 rounded-full overflow-hidden">
-                              <div className="bg-[#35313F] h-full transition-all duration-1000" style={{width: `${p.progress}%`}} />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-[#464153] rounded-3xl p-6 border border-white/5 shadow-inner">
-                    <h3 className="text-sm font-bold mb-4">Upcoming Deadlines</h3>
-                    <div className="space-y-2">
-                      {filteredTasks.map(t => (
-                        <div key={t._id} className="flex items-center justify-between p-3 hover:bg-white/5 rounded-xl transition">
-                          <div>
-                            <p className="text-xs font-bold">{t.title}</p>
-                            <p className="text-[10px] text-[#A29EAB]">{t.project?.title || "Internal mandate"}</p>
-                          </div>
-                          <span className="text-[10px] bg-[#35313F] px-2 py-1 rounded-lg border border-white/5">
-                            {new Date(t.dueDate).toLocaleDateString()}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
+                    ))}
+                    {highPriorityMandates.length === 0 && <p className="text-xs opacity-30 italic">All systems nominal.</p>}
                   </div>
                 </div>
               </div>
+
+              <div className="bg-[var(--os-surface)] rounded-[2.5rem] p-8 border border-[var(--os-border)] shadow-xl">
+                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-[var(--os-text-muted)] mb-6">Upcoming Deadlines</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* 🚀 FIX 3: Safe array mapping with fallback */}
+                  {(metrics?.upcomingTasks || []).slice(0, 4).map(t => (
+                    <div key={t._id} className="bg-[var(--os-bg)] p-5 rounded-2xl border border-[var(--os-border)] shadow-sm">
+                      <p className="text-[8px] font-black text-[var(--os-text-muted)] uppercase mb-1 truncate">{t.project?.title || "Internal"}</p>
+                      <h4 className="text-xs font-bold mb-3 truncate">{t.title}</h4>
+                      <div className="flex justify-between items-center text-[9px] font-black uppercase">
+                        <span className="text-[var(--os-text-muted)]">{t.dueDate ? new Date(t.dueDate).toLocaleDateString() : 'TBD'}</span>
+                        <span className="bg-white/5 px-2 py-0.5 rounded border border-white/5">Hold</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
             </div>
           </main>
         </div>
       </div>
+
       {showModal && (
-        <ProjectModal 
-          onClose={() => setShowModal(false)} 
-          onUpdated={() => { setShowModal(false); fetchMetrics(); }} 
-        />
+        <ProjectModal onClose={() => setShowModal(false)} onCreated={() => { setShowModal(false); fetchMetrics(); }} />
       )}
     </div>
   );
 }
 
-function StatCard({ label, value, color = "text-white" }) {
+function MetricCard({ label, value, icon, urgent = false }) {
   return (
-    <div className="bg-[#464153] p-5 rounded-2xl border border-white/5 shadow-inner hover:bg-[#464153]/80 transition">
-      <p className="text-[10px] font-bold text-[#A29EAB] uppercase mb-1 tracking-wider">{label}</p>
-      <h2 className={`text-2xl font-bold ${color}`}>{value}</h2>
+    <div className={`bg-[var(--os-surface)] p-6 rounded-3xl border ${urgent ? 'border-rose-500/30' : 'border-[var(--os-border)]'} shadow-xl transition hover:-translate-y-1`}>
+      <div className="p-2.5 bg-[var(--os-bg)] rounded-xl border border-[var(--os-border)] w-fit mb-4">
+        {icon}
+      </div>
+      <h2 className="text-2xl font-black mb-1">{value}</h2>
+      <p className="text-[9px] font-black text-[var(--os-text-muted)] uppercase tracking-widest">{label}</p>
     </div>
   );
 }

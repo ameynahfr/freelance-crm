@@ -93,14 +93,14 @@ export default function ProjectModal({ onClose, onUpdated, editData }) {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-[#35313F]/80 backdrop-blur-sm transition-opacity" onClick={onClose} />
+      <div className="absolute inset-0 bg-[var(--os-bg)]/80 backdrop-blur-sm transition-opacity" onClick={onClose} />
 
-      <div className="relative w-full max-w-2xl bg-[#35313F] rounded-[2rem] shadow-2xl overflow-hidden border border-white/5 flex flex-col max-h-[95vh] animate-in fade-in zoom-in-95 duration-200">
-        <div className="flex justify-between items-center px-6 py-5 border-b border-white/5 bg-[#464153]/30">
-          <h2 className="text-lg font-bold text-white tracking-tight">
+      <div className="relative w-full max-w-2xl bg-[var(--os-bg)] rounded-[2rem] shadow-2xl overflow-hidden border border-[var(--os-border)] flex flex-col max-h-[95vh] animate-in fade-in zoom-in-95 duration-200">
+        <div className="flex justify-between items-center px-6 py-5 border-b border-[var(--os-border)] bg-[var(--os-surface)]/30">
+          <h2 className="text-lg font-bold text-[var(--os-text-main)] tracking-tight">
             {editData ? "Update Mandate" : "New Project"}
           </h2>
-          <button onClick={onClose} className="text-[#A29EAB] hover:text-white transition-colors bg-white/5 p-2 rounded-full hover:bg-white/10">
+          <button onClick={onClose} className="text-[var(--os-text-muted)] hover:text-[var(--os-text-main)] transition-colors bg-white/5 p-2 rounded-full hover:bg-white/10">
             <FaTimes size={14} />
           </button>
         </div>
@@ -114,18 +114,18 @@ export default function ProjectModal({ onClose, onUpdated, editData }) {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-[11px] font-bold text-[#A29EAB] uppercase tracking-wider mb-2 block ml-1 flex items-center gap-2">
+              <label className="text-[11px] font-bold text-[var(--os-text-muted)] uppercase tracking-wider mb-2 block ml-1 flex items-center gap-2">
                 <FaFolder size={10} /> Title
               </label>
-              <input type="text" required value={title} onChange={(e) => setTitle(e.target.value)} className="w-full bg-[#464153] border-none rounded-xl px-4 py-3 text-sm text-white outline-none focus:ring-1 focus:ring-[#D2C9D8]" placeholder="Project name..." />
+              <input type="text" required value={title} onChange={(e) => setTitle(e.target.value)} className="w-full bg-[var(--os-surface)] border-none rounded-xl px-4 py-3 text-sm text-[var(--os-text-main)] outline-none focus:ring-1 focus:ring-[#D2C9D8]" placeholder="Project name..." />
             </div>
 
             <div>
-              <label className="text-[11px] font-bold text-[#A29EAB] uppercase tracking-wider mb-2 block ml-1 flex items-center gap-2">
+              <label className="text-[11px] font-bold text-[var(--os-text-muted)] uppercase tracking-wider mb-2 block ml-1 flex items-center gap-2">
                 <FaUser size={10} /> Client
               </label>
               <div className="relative">
-                <select value={client} onChange={(e) => setClient(e.target.value)} className="w-full bg-[#464153] border-none rounded-xl px-4 py-3 text-sm text-white outline-none cursor-pointer appearance-none focus:ring-1 focus:ring-[#D2C9D8]">
+                <select value={client} onChange={(e) => setClient(e.target.value)} className="w-full bg-[var(--os-surface)] border-none rounded-xl px-4 py-3 text-sm text-[var(--os-text-main)] outline-none cursor-pointer appearance-none focus:ring-1 focus:ring-[#D2C9D8]">
                   <option value="">Internal mandate</option>
                   {clients.map((c) => (<option key={c._id} value={c._id}>{c.name}</option>))}
                 </select>
@@ -135,10 +135,10 @@ export default function ProjectModal({ onClose, onUpdated, editData }) {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-[11px] font-bold text-[#A29EAB] uppercase tracking-wider mb-2 block ml-1 flex items-center gap-2">
+              <label className="text-[11px] font-bold text-[var(--os-text-muted)] uppercase tracking-wider mb-2 block ml-1 flex items-center gap-2">
                 <FaTasks size={10} /> Status
               </label>
-              <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full bg-[#464153] border-none rounded-xl px-4 py-3 text-sm text-white outline-none cursor-pointer appearance-none focus:ring-1 focus:ring-[#D2C9D8]">
+              <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full bg-[var(--os-surface)] border-none rounded-xl px-4 py-3 text-sm text-[var(--os-text-main)] outline-none cursor-pointer appearance-none focus:ring-1 focus:ring-[#D2C9D8]">
                 <option value="pending">Pending</option>
                 <option value="active">Active</option>
                 <option value="completed">Completed</option>
@@ -147,41 +147,41 @@ export default function ProjectModal({ onClose, onUpdated, editData }) {
             </div>
 
             <div>
-              <label className="text-[11px] font-bold text-[#A29EAB] uppercase tracking-wider mb-2 block ml-1 flex items-center gap-2">
+              <label className="text-[11px] font-bold text-[var(--os-text-muted)] uppercase tracking-wider mb-2 block ml-1 flex items-center gap-2">
                 <FaCalendarAlt size={10} /> Deadline
               </label>
-              <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} className="w-full bg-[#464153] border-none rounded-xl px-4 py-3 text-sm text-white outline-none focus:ring-1 focus:ring-[#D2C9D8] [color-scheme:dark]" />
+              <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} className="w-full bg-[var(--os-surface)] border-none rounded-xl px-4 py-3 text-sm text-[var(--os-text-main)] outline-none focus:ring-1 focus:ring-[#D2C9D8] [color-scheme:dark]" />
             </div>
           </div>
 
           <div>
-            <label className="text-[11px] font-bold text-[#A29EAB] uppercase tracking-wider mb-2 block ml-1 flex items-center gap-2">
+            <label className="text-[11px] font-bold text-[var(--os-text-muted)] uppercase tracking-wider mb-2 block ml-1 flex items-center gap-2">
               <FaAlignLeft size={10} /> Overview
             </label>
-            <textarea rows="3" value={description} onChange={(e) => setDescription(e.target.value)} className="w-full bg-[#464153] border-none rounded-xl px-4 py-3 text-sm text-white resize-none outline-none focus:ring-1 focus:ring-[#D2C9D8]" placeholder="Objective details..." />
+            <textarea rows="3" value={description} onChange={(e) => setDescription(e.target.value)} className="w-full bg-[var(--os-surface)] border-none rounded-xl px-4 py-3 text-sm text-[var(--os-text-main)] resize-none outline-none focus:ring-1 focus:ring-[#D2C9D8]" placeholder="Objective details..." />
           </div>
 
           <div>
-            <label className="text-[11px] font-bold text-[#A29EAB] uppercase tracking-wider mb-2 block ml-1 flex items-center gap-2">
+            <label className="text-[11px] font-bold text-[var(--os-text-muted)] uppercase tracking-wider mb-2 block ml-1 flex items-center gap-2">
               <FaUsers size={12} /> Assign Agents
             </label>
-            <div className="bg-[#464153]/30 p-2 rounded-xl border border-white/5 max-h-40 overflow-y-auto custom-scrollbar">
+            <div className="bg-[var(--os-surface)]/30 p-2 rounded-xl border border-[var(--os-border)] max-h-40 overflow-y-auto custom-scrollbar">
               {teamMembers.length === 0 ? (
-                 <p className="text-center py-4 text-xs text-[#A29EAB]">No staff available.</p>
+                 <p className="text-center py-4 text-xs text-[var(--os-text-muted)]">No staff available.</p>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {teamMembers.map(member => (
                     <div 
                       key={member._id}
                       onClick={() => handleTeamToggle(member._id)}
-                      className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all border ${selectedTeam.includes(member._id) ? "bg-[#D2C9D8] border-[#D2C9D8]" : "bg-[#464153] border-transparent hover:border-white/10"}`}
+                      className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all border ${selectedTeam.includes(member._id) ? "bg-[var(--os-canvas)] border-[#D2C9D8]" : "bg-[var(--os-surface)] border-transparent hover:border-white/10"}`}
                     >
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${selectedTeam.includes(member._id) ? "bg-[#35313F] text-white" : "bg-[#35313F] text-[#D2C9D8]"}`}>
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${selectedTeam.includes(member._id) ? "bg-[var(--os-bg)] text-[var(--os-text-main)]" : "bg-[var(--os-bg)] text-[#D2C9D8]"}`}>
                         {member.name.charAt(0)}
                       </div>
                       <div className="min-w-0">
-                        <p className={`text-xs font-bold truncate ${selectedTeam.includes(member._id) ? "text-[#35313F]" : "text-white"}`}>{member.name}</p>
-                        <p className={`text-[9px] truncate ${selectedTeam.includes(member._id) ? "text-[#35313F]/70" : "text-[#A29EAB]"}`}>{member.title || member.role}</p>
+                        <p className={`text-xs font-bold truncate ${selectedTeam.includes(member._id) ? "text-[#35313F]" : "text-[var(--os-text-main)]"}`}>{member.name}</p>
+                        <p className={`text-[9px] truncate ${selectedTeam.includes(member._id) ? "text-[#35313F]/70" : "text-[var(--os-text-muted)]"}`}>{member.title || member.role}</p>
                       </div>
                     </div>
                   ))}
@@ -191,7 +191,7 @@ export default function ProjectModal({ onClose, onUpdated, editData }) {
           </div>
 
           <div className="pt-2 flex gap-3">
-            <button type="button" onClick={onClose} className="flex-1 py-3 rounded-xl font-bold text-xs uppercase text-[#A29EAB] bg-[#464153] hover:bg-[#464153]/80 transition-colors">Cancel</button>
+            <button type="button" onClick={onClose} className="flex-1 py-3 rounded-xl font-bold text-xs uppercase text-[var(--os-text-muted)] bg-[var(--os-surface)] hover:bg-[var(--os-surface)]/80 transition-colors">Cancel</button>
             <button type="submit" disabled={loading} className="flex-1 py-3 rounded-xl font-bold text-xs uppercase text-[#35313F] bg-white shadow-lg hover:bg-gray-100 transition-all">
               {loading ? "Syncing..." : <><FaSave className="inline mr-1" /> Save Mandate</>}
             </button>
