@@ -16,7 +16,7 @@ import { useState } from "react";
 
 export default function Sidebar() {
   const location = useLocation();
-  const { user, logout } = useAuth(); // 🚀 Use logout from the hook
+  const { user, logout } = useAuth(); 
   const [isOpen, setIsOpen] = useState(false);
 
   // Base Menu (Accessible by all agents)
@@ -54,11 +54,25 @@ export default function Sidebar() {
         `}
       >
         <div className="p-8 pb-4">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-8 h-8 bg-[var(--os-canvas)] rounded-lg flex items-center justify-center text-[#35313F] font-black text-xl">F</div>
-            <h1 className="text-xl font-bold text-[var(--os-text-main)] tracking-tight">Freelance<span className="text-[var(--os-text-muted)]">OS</span></h1>
+          <div className="flex items-center gap-4 mb-8">
+            
+            {/* 🚀 OMNI NODE SVG LOGO */}
+            <div className="relative w-9 h-9 flex items-center justify-center flex-shrink-0">
+              <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+                {/* Outer Orbital Ring (Slow Spin) */}
+                <circle cx="16" cy="16" r="14" stroke="currentColor" strokeWidth="1.5" strokeDasharray="4 6" className="text-[var(--os-text-muted)] opacity-60 animate-[spin_12s_linear_infinite]" />
+                {/* Inner Structure Ring */}
+                <circle cx="16" cy="16" r="9" stroke="currentColor" strokeWidth="1.5" className="text-[var(--os-text-main)] opacity-80" />
+                {/* The "Node" (Pulsing Core) */}
+                <circle cx="16" cy="16" r="4" fill="var(--os-accent)" className="drop-shadow-[0_0_8px_var(--os-accent)] animate-pulse" />
+              </svg>
+            </div>
+
+            <h1 className="text-2xl font-black text-[var(--os-text-main)] tracking-tight">
+              Omni<span className="text-[var(--os-text-muted)] font-bold">Node</span>
+            </h1>
           </div>
-          <div className="h-px w-full bg-gradient-to-r from-transparent via-[#5B5569]/50 to-transparent" />
+          <div className="h-px w-full bg-gradient-to-r from-[var(--os-accent)]/50 via-[#5B5569]/30 to-transparent mb-2" />
         </div>
 
         <nav className="flex-1 px-4 space-y-2 overflow-y-auto custom-scrollbar py-2">

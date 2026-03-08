@@ -2,21 +2,22 @@ import { useState, useEffect, useCallback } from "react";
 import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
 import { useAuth } from "../hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import { FaPlus, FaTrash, FaEnvelope, FaShieldAlt, FaUsersCog } from "react-icons/fa";
 
-// 🚀 API LAYER IMPORTS
-import { getTeam, removeTeamMember } from "../api/teamApi";
-import AddMemberModal from "../components/AddMemeberModal.jsx"; // Ensuring we use the recruit modal
+// 🚀 API LAYER IMPORTS (Make sure updateTeamMember is in your teamApi.js!)
+import { getTeam, removeTeamMember, updateTeamMember } from "../api/teamApi";
+import AddMemberModal from "../components/AddMemeberModal.jsx"; 
 
 export default function Team() {
   const { token, user: currentUser } = useAuth();
   const [team, setTeam] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   const fetchTeamData = useCallback(async () => {
     try {
-      // 🚀 Clean API Call - Header added by interceptor
       const res = await getTeam();
       setTeam(res.data);
     } catch (err) {
@@ -30,11 +31,10 @@ export default function Team() {
     fetchTeamData();
   }, [fetchTeamData]);
 
-  // 🔒 Security Logic: Hierarchy enforcement
   const canDelete = (targetMember) => {
     if (!currentUser) return false;
-    if (targetMember.role === 'owner') return false; // Owners are immortal
-    if (currentUser.role === 'owner') return true; // Owners can remove anyone else
+    if (targetMember.role === 'owner') return false; 
+    if (currentUser.role === 'owner') return true; 
     if (currentUser.role === 'manager' && targetMember.role === 'member') return true;
     return false;
   };
@@ -42,11 +42,25 @@ export default function Team() {
   const handleRemove = async (id) => {
     if (!window.confirm("Offboard this agent from the agency?")) return;
     try {
-      // 🚀 API Layer removal
       await removeTeamMember(id);
       setTeam(prev => prev.filter(m => m._id !== id));
     } catch (err) {
       alert(err.response?.data?.message || "Offboarding failed");
+    }
+  };
+
+  // 🚀 NEW: Handle Promoting/Demoting Agents
+  const handleRoleChange = async (id, currentRole) => {
+    const newRole = currentRole === 'manager' ? 'member' : 'manager';
+    const actionText = newRole === 'manager' ? 'Upgrade to Manager status?' : 'Revoke Manager clearance?';
+    
+    if (!window.confirm(actionText)) return;
+
+    try {
+      await updateTeamMember(id, { role: newRole });
+      fetchTeamData(); // Refresh the registry
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to alter clearance.");
     }
   };
 
@@ -89,7 +103,11 @@ export default function Team() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {team.map(member => (
-                  <div key={member._id} className="bg-[var(--os-surface)] p-6 rounded-[2rem] border border-[var(--os-border)] flex flex-col items-center text-center group relative overflow-hidden transition-all hover:border-[#D2C9D8]/30">
+                  <div 
+                    key={member._id} 
+                    onClick={() => navigate(`/team/${member._id}`)} 
+                    className="bg-[var(--os-surface)] p-6 rounded-[2rem] border border-[var(--os-border)] flex flex-col items-center text-center group relative overflow-hidden transition-all hover:border-[var(--os-accent)]/50 hover:shadow-xl hover:-translate-y-1 cursor-pointer"
+                  >
                     <div className="relative mb-4">
                       <div className="w-20 h-20 rounded-2xl bg-[var(--os-bg)] border-2 border-white/10 overflow-hidden shadow-xl">
                         {member.profilePic ? (
@@ -107,25 +125,49 @@ export default function Team() {
                       )}
                     </div>
 
-                    <h3 className="font-bold text-lg">{member.name}</h3>
+                    <h3 className="font-bold text-lg group-hover:text-[var(--os-accent)] transition-colors">{member.name}</h3>
                     <p className="text-[10px] font-black uppercase text-[#D2C9D8] tracking-widest mb-4">
                       {member.title || member.role}
                     </p>
                     
-                    <div className="w-full h-px bg-white/5 mb-4" />
+                    <div className="w-full h-px bg-white/5 mb-4 group-hover:bg-[var(--os-accent)]/20 transition-colors" />
                     
                     <p className="text-[11px] text-[var(--os-text-muted)] flex items-center gap-2 mb-6">
                       <FaEnvelope size={10} /> {member.email}
                     </p>
 
-                    {canDelete(member) && (
-                      <button 
-                        onClick={() => handleRemove(member._id)} 
-                        className="text-rose-400/30 hover:text-rose-400 transition-all absolute top-4 right-4 p-2 bg-[var(--os-bg)]/50 rounded-lg"
-                      >
-                        <FaTrash size={12} />
-                      </button>
-                    )}
+                    {/* 🚀 QUICK ACTIONS LAYER */}
+                    <div className="absolute top-4 right-4 flex gap-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                      
+                      {/* Shield Button for Owner to Promote/Demote */}
+                      {currentUser?.role === 'owner' && member.role !== 'owner' && (
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation(); 
+                            handleRoleChange(member._id, member.role);
+                          }} 
+                          className="text-[var(--os-text-muted)] hover:text-amber-400 p-2 bg-[var(--os-bg)]/80 backdrop-blur-md border border-[var(--os-border)] rounded-lg hover:bg-amber-400/10 transition-all shadow-sm"
+                          title={member.role === 'manager' ? 'Revoke Manager Clearance' : 'Upgrade to Manager'}
+                        >
+                          <FaShieldAlt size={12} />
+                        </button>
+                      )}
+
+                      {/* Delete Button */}
+                      {canDelete(member) && (
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation(); 
+                            handleRemove(member._id);
+                          }} 
+                          className="text-rose-400/50 hover:text-rose-400 p-2 bg-[var(--os-bg)]/80 backdrop-blur-md border border-[var(--os-border)] rounded-lg hover:bg-rose-500/10 transition-all shadow-sm"
+                          title="Purge Agent"
+                        >
+                          <FaTrash size={12} />
+                        </button>
+                      )}
+                    </div>
+
                   </div>
                 ))}
               </div>

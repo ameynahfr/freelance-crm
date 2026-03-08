@@ -11,7 +11,8 @@ import Clients from "./pages/Clients.jsx";
 import Invoices from "./pages/Invoices.jsx";
 import Profile from "./pages/Profile.jsx";
 import Team from "./pages/Team.jsx";
-import MyTasks from "./pages/MyTasks.jsx"; // 🚀 Our Unified Smart Board
+import MyTasks from "./pages/MyTasks.jsx";
+import AgentProfile from "./pages/AgentProfile.jsx";
 
 // Enhanced Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -53,6 +54,7 @@ export default function App() {
       <Route path="/invoices" element={<ProtectedRoute><Invoices /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
+      <Route path="/team/:memberId" element={<ProtectedRoute><AgentProfile /></ProtectedRoute>} />
       
       {/* Catch-all Fallback */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

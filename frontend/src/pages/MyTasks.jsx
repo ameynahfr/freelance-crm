@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { 
   DndContext, 
@@ -18,11 +18,11 @@ import KanbanColumn from "../components/KanbanColumn.jsx";
 import SortableTaskCard from "../components/SortableTaskCard.jsx";
 
 // 🚀 API LAYER IMPORTS
-import { getMyTasks, getProjectTasks, updateTask } from "../api/taskApi";
+import { getMyTasks, getProjectTasks, updateTask, deleteTask as deleteTaskApi } from "../api/taskApi";
 import { getProjectById } from "../api/projectApi";
 
 export default function MyTasks() {
-  const { projectId } = useParams(); // For when you view tasks within a specific project
+  const { projectId } = useParams();
   const { token, user, loading: authLoading } = useAuth(); 
   
   const [tasks, setTasks] = useState([]);
@@ -41,7 +41,6 @@ export default function MyTasks() {
   const fetchData = useCallback(async () => {
     if (!token) return;
     try {
-      // 🎯 Logic: If on a project page, show project tasks. Otherwise, show personal workload.
       const taskRes = projectId && projectId !== "undefined"
         ? await getProjectTasks(projectId)
         : await getMyTasks();
@@ -64,6 +63,21 @@ export default function MyTasks() {
   }, [projectId, token]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  const handleEditTask = (task) => {
+    setEditingTask(task);
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteTask = async (taskId) => {
+    if (!window.confirm("Purge this task from the system?")) return;
+    try {
+      await deleteTaskApi(taskId);
+      fetchData();
+    } catch (err) {
+      console.error("Delete failed:", err);
+    }
+  };
 
   const handleDragStart = (event) => {
     const task = tasks.find(t => t._id === event.active.id.toString());
@@ -138,9 +152,9 @@ export default function MyTasks() {
             <div className="flex-1 overflow-x-auto p-6 scrollbar-hide">
               <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
                 <div className="flex gap-6 h-full min-w-[900px]">
-                  <KanbanColumn id="todo" title="To Do" tasks={filtered.filter(t => t.status === "todo")} currentUser={user} onEdit={setEditingTask} onDelete={fetchData} />
-                  <KanbanColumn id="in-progress" title="In Progress" tasks={filtered.filter(t => t.status === "in-progress")} currentUser={user} onEdit={setEditingTask} onDelete={fetchData} />
-                  <KanbanColumn id="done" title="Completed" tasks={filtered.filter(t => t.status === "done")} currentUser={user} onEdit={setEditingTask} onDelete={fetchData} />
+                  <KanbanColumn id="todo" title="To Do" tasks={filtered.filter(t => t.status === "todo")} currentUser={user} onEdit={handleEditTask} onDelete={handleDeleteTask} />
+                  <KanbanColumn id="in-progress" title="In Progress" tasks={filtered.filter(t => t.status === "in-progress")} currentUser={user} onEdit={handleEditTask} onDelete={handleDeleteTask} />
+                  <KanbanColumn id="done" title="Completed" tasks={filtered.filter(t => t.status === "done")} currentUser={user} onEdit={handleEditTask} onDelete={handleDeleteTask} />
                 </div>
                 <DragOverlay dropAnimation={null}>
                   {activeTask ? <SortableTaskCard task={activeTask} currentUser={user} isOverlay /> : null}

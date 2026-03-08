@@ -50,10 +50,22 @@ export default function SortableTaskCard({ task, currentUser, onEdit, onDelete, 
         
         {isBoss && !isOverlay && (
           <div className="flex gap-2">
-            <button onPointerDown={(e) => { e.stopPropagation(); onEdit(task); }} className="text-[var(--os-text-muted)] hover:text-[var(--os-text-main)] p-1">
+            <button 
+              onPointerDown={(e) => { 
+                e.stopPropagation(); 
+                onEdit(task); 
+              }} 
+              className="text-[var(--os-text-muted)] hover:text-[var(--os-text-main)] p-1 transition-colors"
+            >
               <FaEdit size={12} />
             </button>
-            <button onPointerDown={(e) => { e.stopPropagation(); onDelete(task._id); }} className="text-[var(--os-text-muted)] hover:text-rose-400 p-1">
+            <button 
+              onPointerDown={(e) => { 
+                e.stopPropagation(); 
+                onDelete(task._id); 
+              }} 
+              className="text-[var(--os-text-muted)] hover:text-rose-400 p-1 transition-colors"
+            >
               <FaTrash size={12} />
             </button>
           </div>

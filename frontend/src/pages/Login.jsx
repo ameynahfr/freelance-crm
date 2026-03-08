@@ -3,7 +3,7 @@ import { useDispatch } from "react-redux";
 import { login } from "../redux/authSlice";
 import { useAuth } from "../hooks/useAuth.jsx";
 import { Link, useNavigate } from "react-router-dom";
-import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { FaEye, FaEyeSlash, FaFingerprint, FaNetworkWired } from "react-icons/fa";
 
 export default function Login() {
   const dispatch = useDispatch();
@@ -23,7 +23,6 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // 🚀 Clean Redux Action - API call happens inside authSlice
     const result = await dispatch(login({ email, password }));
     
     if (result.meta.requestStatus === 'fulfilled') {
@@ -32,72 +31,95 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--os-canvas)] p-4 font-sans text-[var(--os-text-main)]">
-      <div className="flex w-full max-w-4xl bg-[var(--os-bg)] rounded-[1.5rem] shadow-xl overflow-hidden min-h-[500px]">
-        {/* LEFT SIDE - Branding */}
-        <div className="hidden lg:flex lg:w-1/2 p-10 flex-col justify-between">
-          <div>
-            <div className="text-2xl font-extrabold tracking-tight mb-6 text-[#D2C9D8]">CRM</div>
-            <h1 className="text-3xl font-bold tracking-tight text-[var(--os-text-main)] mb-3">FreelanceCRM</h1>
-            <p className="text-[var(--os-text-muted)] max-w-sm text-sm font-medium leading-relaxed">
-              The simple way to manage clients, invoices, and projects — built for freelancers who value clarity.
+    <div className="min-h-screen flex items-center justify-center bg-[var(--os-canvas)] p-4 md:p-8 font-sans text-[var(--os-text-main)] transition-colors duration-300">
+      <div className="flex w-full max-w-5xl bg-[var(--os-bg)] rounded-[2.5rem] shadow-2xl overflow-hidden min-h-[650px] border border-[var(--os-border)]">
+        
+        {/* LEFT SIDE - Branding & OS Vibe */}
+        <div className="hidden lg:flex lg:w-5/12 p-12 flex-col justify-between bg-[var(--os-surface)] border-r border-[var(--os-border)] relative overflow-hidden">
+          
+          {/* Subtle Background Accent */}
+          <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-[var(--os-accent)]/10 to-transparent" />
+
+          <div className="relative z-10">
+            {/* 🚀 OMNI NODE SVG LOGO */}
+            <div className="flex items-center gap-3 mb-10">
+              <div className="relative w-10 h-10 flex items-center justify-center flex-shrink-0">
+                <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+                  <circle cx="16" cy="16" r="14" stroke="currentColor" strokeWidth="1.5" strokeDasharray="4 6" className="text-[var(--os-text-muted)] opacity-60 animate-[spin_12s_linear_infinite]" />
+                  <circle cx="16" cy="16" r="9" stroke="currentColor" strokeWidth="1.5" className="text-[var(--os-text-main)] opacity-80" />
+                  <circle cx="16" cy="16" r="4" fill="var(--os-accent)" className="drop-shadow-[0_0_8px_var(--os-accent)] animate-pulse" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-black tracking-tight">Omni<span className="text-[var(--os-text-muted)]">Node</span></h2>
+            </div>
+
+            <h1 className="text-4xl font-black mb-6 leading-tight">Access<br/>The Network.</h1>
+            <p className="text-[var(--os-text-muted)] leading-relaxed text-sm font-medium max-w-xs">
+              Authenticate your identity to access active mandates, agency personnel, and financial telemetrics.
             </p>
           </div>
-          <div className="space-y-4">
-            <FeatureItem number="1" title="Organized Management" desc="Keep everything in one place" />
-            <FeatureItem number="2" title="Clear Tracking" desc="Never miss deadlines" />
+
+          {/* Feature Callouts */}
+          <div className="space-y-4 relative z-10">
+            <FeatureItem icon={<FaFingerprint size={16} />} title="Biometric Security" desc="End-to-end encryption for all agency assets." />
+            <div className="opacity-70">
+              <FeatureItem icon={<FaNetworkWired size={14} />} title="Global Sync" desc="Real-time updates across the operative network." />
+            </div>
           </div>
         </div>
 
         {/* RIGHT SIDE - Form */}
-        <div className="flex flex-1 items-center justify-center p-8 lg:p-10 bg-[#F2EAE3] text-[#35313F] rounded-[1.5rem] m-2 shadow-inner">
-          <form onSubmit={handleSubmit} className="w-full max-w-sm">
-            <div className="mb-8">
-              <h2 className="text-2xl font-extrabold tracking-tight">Sign In</h2>
-              <p className="text-[#847F8D] text-sm font-medium mt-1.5">Welcome back! Please enter your details.</p>
+        <div className="flex-1 p-8 lg:p-16 flex flex-col justify-center bg-[var(--os-bg)] relative">
+          <form onSubmit={handleSubmit} className="w-full max-w-sm mx-auto">
+            
+            <div className="mb-10 text-center lg:text-left">
+              <h2 className="text-3xl font-black mb-2 tracking-tight">Agent Login</h2>
+              <p className="text-[var(--os-text-muted)] text-sm font-bold">Provide your credentials to proceed.</p>
             </div>
 
             {error && (
-              <div className="mb-4 p-3 rounded-lg bg-red-100 border border-red-200 text-red-600 text-sm font-medium">
-                {typeof error === 'string' ? error : "Login failed. Check credentials."}
+              <div className="mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-black uppercase tracking-widest text-center">
+                {typeof error === 'string' ? error : "Authentication failed. Check credentials."}
               </div>
             )}
 
-            <div className="mb-4">
-              <label className="text-xs font-bold uppercase tracking-wider text-[#847F8D] block mb-1.5 ml-3">Email</label>
-              <input
-                type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-5 py-3 rounded-full bg-white border-none text-[#35313F] placeholder-[#A29EAB] focus:ring-4 focus:ring-[#D2C9D8] transition-all text-sm font-medium shadow-sm outline-none"
-                placeholder="you@example.com"
-              />
-            </div>
-
-            <div className="mb-6">
-              <div className="flex justify-between items-center mb-1.5 px-3">
-                <label className="text-xs font-bold uppercase tracking-wider text-[#847F8D] block">Password</label>
-                <a href="#" className="text-xs font-bold text-[#847F8D] hover:text-[#35313F] transition-colors">Forgot?</a>
-              </div>
-              <div className="relative">
+            <div className="space-y-5 mb-8">
+              <div className="space-y-2">
+                <label className="text-[9px] font-black uppercase tracking-widest text-[var(--os-text-muted)] ml-1">Secure Channel (Email)</label>
                 <input
-                  type={showPassword ? "text" : "password"} required value={password} onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-5 py-3 rounded-full bg-white border-none text-[#35313F] placeholder-[#A29EAB] focus:ring-4 focus:ring-[#D2C9D8] transition-all text-sm font-medium pr-12 shadow-sm outline-none"
-                  placeholder="••••••••"
+                  type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
+                  className="w-full px-5 py-3.5 rounded-xl bg-[var(--os-surface)] border border-[var(--os-border)] text-sm font-bold shadow-inner outline-none focus:border-[var(--os-accent)] focus:ring-1 focus:ring-[var(--os-accent)] transition-all placeholder:text-[var(--os-text-muted)]/40"
+                  placeholder="agent@omninode.com"
                 />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--os-text-muted)] hover:text-[#35313F] transition-colors">
-                  {showPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
-                </button>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between items-center px-1">
+                  <label className="text-[9px] font-black uppercase tracking-widest text-[var(--os-text-muted)]">Cryptographic Key (Password)</label>
+                  <a href="#" className="text-[9px] font-black uppercase tracking-widest text-[var(--os-accent)] hover:underline transition-colors">Forgot?</a>
+                </div>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"} required value={password} onChange={(e) => setPassword(e.target.value)}
+                    className="w-full px-5 py-3.5 rounded-xl bg-[var(--os-surface)] border border-[var(--os-border)] text-sm font-bold shadow-inner outline-none focus:border-[var(--os-accent)] focus:ring-1 focus:ring-[var(--os-accent)] transition-all pr-12 placeholder:text-[var(--os-text-muted)]/40"
+                    placeholder="••••••••"
+                  />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--os-text-muted)] hover:text-[var(--os-accent)] transition-colors">
+                    {showPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
+                  </button>
+                </div>
               </div>
             </div>
 
             <button 
               type="submit" disabled={loading}
-              className="w-full py-3 rounded-full font-bold text-[var(--os-text-main)] text-base bg-[var(--os-bg)] hover:bg-[#2A2732] transition-all duration-200 shadow-md disabled:opacity-50"
+              className="w-full py-4 bg-[var(--os-btn-primary)] text-[var(--os-btn-primary-text)] rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-[var(--os-btn-primary)]/20 hover:scale-[1.02] hover:shadow-xl transition-all active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
             >
-              {loading ? "Authenticating..." : "Sign In"}
+              {loading ? "Authenticating..." : "Initialize Session"}
             </button>
 
-            <p className="text-xs font-medium text-[#847F8D] text-center mt-5">
-              Don't have an account? <Link to="/register" className="text-[#35313F] font-bold hover:underline">Create one</Link>
+            <p className="text-[10px] font-black uppercase tracking-widest text-[var(--os-text-muted)] text-center mt-8">
+              Unregistered operative? <Link to="/register" className="text-[var(--os-accent)] hover:underline ml-1">Request Access</Link>
             </p>
           </form>
         </div>
@@ -106,14 +128,17 @@ export default function Login() {
   );
 }
 
-function FeatureItem({ number, title, desc }) {
+// Updated FeatureItem to use Icons instead of Numbers
+function FeatureItem({ icon, title, desc }) {
   return (
-    <div className="bg-[var(--os-surface)] p-4 rounded-2xl flex items-center gap-4 border border-[var(--os-border)]">
-      <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-[#35313F] text-sm font-bold shadow-sm">{number}</div>
-      <div>
-        <p className="font-bold text-[var(--os-text-main)] text-sm">{title}</p>
-        <p className="text-[var(--os-text-muted)] text-xs mt-0.5">{desc}</p>
+    <div className="bg-[var(--os-bg)] p-5 rounded-2xl border border-[var(--os-border)] shadow-sm">
+      <div className="flex items-center gap-3 mb-2 text-[var(--os-accent)]">
+        {icon}
+        <p className="font-black text-xs uppercase tracking-widest text-[var(--os-text-main)]">{title}</p>
       </div>
+      <p className="text-[var(--os-text-muted)] text-[11px] font-bold leading-relaxed">
+        {desc}
+      </p>
     </div>
   );
 }

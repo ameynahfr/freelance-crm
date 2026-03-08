@@ -103,7 +103,6 @@ export default function Dashboard() {
                   <h3 className="text-xs font-black uppercase tracking-[0.2em] text-[var(--os-text-muted)] mb-8">Performance Analytics</h3>
                   <div className="h-64">
                     <ResponsiveContainer width="100%" height="100%">
-                      {/* 🚀 FIX 2: Ensure data is always an array */}
                       <AreaChart data={metrics?.earningsOverTime || []}>
                         <defs>
                           <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
@@ -142,17 +141,35 @@ export default function Dashboard() {
               <div className="bg-[var(--os-surface)] rounded-[2.5rem] p-8 border border-[var(--os-border)] shadow-xl">
                 <h3 className="text-xs font-black uppercase tracking-[0.2em] text-[var(--os-text-muted)] mb-6">Upcoming Deadlines</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* 🚀 FIX 3: Safe array mapping with fallback */}
-                  {(metrics?.upcomingTasks || []).slice(0, 4).map(t => (
-                    <div key={t._id} className="bg-[var(--os-bg)] p-5 rounded-2xl border border-[var(--os-border)] shadow-sm">
-                      <p className="text-[8px] font-black text-[var(--os-text-muted)] uppercase mb-1 truncate">{t.project?.title || "Internal"}</p>
-                      <h4 className="text-xs font-bold mb-3 truncate">{t.title}</h4>
-                      <div className="flex justify-between items-center text-[9px] font-black uppercase">
-                        <span className="text-[var(--os-text-muted)]">{t.dueDate ? new Date(t.dueDate).toLocaleDateString() : 'TBD'}</span>
-                        <span className="bg-white/5 px-2 py-0.5 rounded border border-white/5">Hold</span>
+                  {(metrics?.upcomingTasks || []).slice(0, 4).map(t => {
+                    
+                    // 🚀 LOGIC: Check if date is in the past (by setting end of due day) and not done
+                    const isOverdue = t.dueDate && new Date(t.dueDate).setHours(23, 59, 59, 999) < new Date() && t.status !== 'done';
+
+                    return (
+                      <div key={t._id} className={`bg-[var(--os-bg)] p-5 rounded-2xl border shadow-sm transition-all ${isOverdue ? 'border-rose-500/30' : 'border-[var(--os-border)]'}`}>
+                        <p className="text-[8px] font-black text-[var(--os-text-muted)] uppercase mb-1 truncate">{t.project?.title || "Internal"}</p>
+                        <h4 className="text-xs font-bold mb-3 truncate">{t.title}</h4>
+                        <div className="flex justify-between items-center text-[9px] font-black uppercase">
+                          
+                          <span className={isOverdue ? 'text-rose-400' : 'text-[var(--os-text-muted)]'}>
+                            {t.dueDate ? new Date(t.dueDate).toLocaleDateString() : 'TBD'}
+                          </span>
+                          
+                          {/* 🚀 LOGIC: Overdue -> Done -> In-Progress -> Todo */}
+                          <span className={`px-2 py-0.5 rounded border ${
+                            isOverdue ? 'bg-rose-500/10 text-rose-400 border-rose-500/20 shadow-[0_0_8px_rgba(244,63,94,0.2)]' :
+                            t.status === 'done' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 
+                            t.status === 'in-progress' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 
+                            'bg-[var(--os-surface)] text-[var(--os-text-muted)] border-[var(--os-border)]'
+                          }`}>
+                            {isOverdue ? 'OVERDUE' : t.status === 'todo' ? 'TODO' : t.status || 'Pending'}
+                          </span>
+
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 

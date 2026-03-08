@@ -3,7 +3,9 @@ import { protect } from "../middlewares/authMiddleware.js";
 import { 
     getTeam, 
     addTeamMember, 
-    removeTeamMember // ✅ Matches the fixed controller name
+    removeTeamMember,
+    getTeamMemberById,
+    updateTeamMember
 } from "../controllers/teamController.js";
 
 const router = express.Router();
@@ -16,6 +18,8 @@ router.route("/")
     .post(addTeamMember);
 
 router.route("/:id")
+    .get(getTeamMemberById)
+    .put(updateTeamMember)
     .delete(removeTeamMember);
 
 export default router;
