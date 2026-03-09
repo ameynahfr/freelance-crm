@@ -4,6 +4,7 @@ import {
   createClient,
   updateClient,
   deleteClient,
+  getClientById
 } from "../controllers/clientController.js";
 import { protect } from "../middlewares/authMiddleware.js";
 
@@ -14,7 +15,10 @@ router.use(protect);
 
 router.route("/").get(getClients).post(createClient);
 
-router.route("/:id").put(updateClient).delete(deleteClient);
+router.route("/:id")
+      .put(updateClient)
+      .get(getClientById)
+      .delete(deleteClient);
 
 export default router;
 // routes/clientRoutes.js

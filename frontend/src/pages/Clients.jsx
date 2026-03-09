@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import Sidebar from "../components/Sidebar.jsx";
 import Header from "../components/Header.jsx";
 import { useAuth } from "../hooks/useAuth.jsx";
+import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast"; // 🚀 TOAST IMPORT
 import {
   FaPlus,
   FaSearch,
@@ -13,7 +15,8 @@ import {
   FaCalendarAlt,
   FaBuilding,
   FaNetworkWired,
-  FaShieldAlt
+  FaShieldAlt,
+  FaExclamationTriangle
 } from "react-icons/fa";
 import ClientModal from "../components/ClientModal.jsx";
 
@@ -27,13 +30,14 @@ export default function Clients() {
   const [showModal, setShowModal] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   const fetchClients = useCallback(async () => {
     try {
       const res = await getClients();
       setClients(res.data);
     } catch (err) {
-      console.error("Directory sync error:", err);
+      toast.error("Directory synchronization failed.");
     } finally {
       setLoading(false);
     }
@@ -43,14 +47,44 @@ export default function Clients() {
     fetchClients();
   }, [fetchClients]);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Purge this external partner? This action will fail if they are tied to active mandates.")) return;
-    try {
-      await deleteClientApi(id);
-      setClients(clients.filter((c) => c._id !== id));
-    } catch (err) {
-      alert(err.response?.data?.message || "Internal removal failed");
-    }
+  // 🚀 TACTICAL REFACTOR: Replaced window.confirm with Custom Tactical Toast
+  const handleDelete = (id, name) => {
+    toast((t) => (
+      <div className="flex flex-col gap-3 min-w-[220px]">
+        <div className="flex items-center gap-2 text-rose-400">
+          <FaExclamationTriangle size={12} />
+          <p className="text-[10px] font-black uppercase tracking-widest">Execute Purge</p>
+        </div>
+        <p className="text-[11px] font-bold text-[var(--os-text-main)]">
+          Sever ties with <span className="text-rose-400">{name}</span>? 
+          <br/>This will fail if active mandates exist.
+        </p>
+        <div className="flex gap-2">
+          <button
+            onClick={async () => {
+              toast.dismiss(t.id);
+              toast.promise(deleteClientApi(id), {
+                loading: 'De-indexing partner...',
+                success: () => {
+                  setClients(prev => prev.filter(c => c._id !== id));
+                  return 'Partner Purged';
+                },
+                error: (err) => err.response?.data?.message || 'Removal failed.',
+              });
+            }}
+            className="bg-rose-500 text-white px-3 py-1.5 rounded-lg text-[9px] font-black uppercase shadow-lg shadow-rose-500/20 hover:bg-rose-600 transition-all"
+          >
+            Execute
+          </button>
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="bg-[var(--os-bg)] text-[var(--os-text-muted)] px-3 py-1.5 rounded-lg text-[9px] font-black uppercase border border-[var(--os-border)] hover:text-[var(--os-text-main)]"
+          >
+            Abort
+          </button>
+        </div>
+      </div>
+    ), { duration: 6000, position: 'bottom-center' });
   };
 
   const filtered = clients.filter(
@@ -59,12 +93,9 @@ export default function Clients() {
       c.email?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  // 🚀 CRM METRICS CALCULATION
   const metrics = useMemo(() => {
     const total = clients.length;
     const verifiedComms = clients.filter(c => c.email && c.phone).length;
-    
-    // Calculate clients added in the last 30 days
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const newClients = clients.filter(c => new Date(c.createdAt) > thirtyDaysAgo).length;
@@ -72,14 +103,13 @@ export default function Clients() {
     return { total, verifiedComms, newClients };
   }, [clients]);
 
-  if (loading)
-    return (
-      <div className="h-screen w-full flex items-center justify-center bg-[var(--os-canvas)]">
-        <div className="bg-[var(--os-bg)] px-8 py-4 rounded-2xl text-[var(--os-text-main)] text-xs font-black uppercase tracking-widest animate-pulse border border-[var(--os-border)] shadow-2xl">
-          Indexing Directory...
-        </div>
+  if (loading) return (
+    <div className="h-screen w-full flex items-center justify-center bg-[var(--os-canvas)]">
+      <div className="bg-[var(--os-bg)] px-8 py-4 rounded-2xl text-[var(--os-text-main)] text-xs font-black uppercase tracking-widest animate-pulse border border-[var(--os-border)] shadow-2xl">
+        Indexing Directory...
       </div>
-    );
+    </div>
+  );
 
   return (
     <div className="h-screen w-full bg-[var(--os-canvas)] p-0 md:p-3 lg:p-4 font-sans text-[var(--os-text-main)] overflow-hidden flex">
@@ -88,10 +118,8 @@ export default function Clients() {
         <div className="flex-1 flex flex-col relative overflow-hidden">
           <Header />
           <main className="flex-1 overflow-y-auto custom-scrollbar relative">
-            
             <div className="max-w-[1600px] mx-auto w-full px-5 md:px-8 py-8 space-y-8">
               
-              {/* --- HEADER & ACTIONS --- */}
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div>
                   <h1 className="text-2xl font-black tracking-tight text-[var(--os-text-main)]">External Partners</h1>
@@ -109,7 +137,6 @@ export default function Clients() {
                       className="w-full bg-transparent border-none rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold text-[var(--os-text-main)] placeholder:text-[var(--os-text-muted)]/40 outline-none"
                     />
                   </div>
-                  
                   <button
                     onClick={() => { setEditingClient(null); setShowModal(true); }}
                     className="bg-[var(--os-btn-primary)] text-[var(--os-btn-primary-text)] px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[var(--os-btn-primary)]/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
@@ -119,7 +146,6 @@ export default function Clients() {
                 </div>
               </div>
 
-              {/* --- CRM TELEMETRY METRICS --- */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-[var(--os-surface)] p-5 rounded-2xl border border-[var(--os-border)] shadow-sm flex items-center gap-4">
                   <div className="p-3 bg-[var(--os-bg)] rounded-xl border border-[var(--os-border)] text-[var(--os-text-muted)]"><FaBuilding /></div>
@@ -144,7 +170,6 @@ export default function Clients() {
                 </div>
               </div>
 
-              {/* --- CLIENT GRID --- */}
               {filtered.length === 0 ? (
                 <div className="py-24 flex flex-col items-center justify-center text-center bg-[var(--os-surface)]/30 rounded-[2.5rem] border border-dashed border-[var(--os-border)]">
                   <FaUserFriends className="text-[var(--os-text-muted)] opacity-20 text-5xl mb-4" />
@@ -154,16 +179,15 @@ export default function Clients() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                   {filtered.map((client) => {
-                    
                     const isSecure = client.email && client.phone;
-
                     return (
                       <div
                         key={client._id}
-                        className="bg-[var(--os-surface)] p-6 rounded-[2rem] border border-[var(--os-border)] hover:border-[var(--os-accent)]/30 hover:-translate-y-1 transition-all group flex flex-col justify-between shadow-sm hover:shadow-xl relative overflow-hidden"
+                        // 🚀 NAVIGATION TARGET
+                        onClick={() => navigate(`/clients/${client._id}`)}
+                        className="bg-[var(--os-surface)] p-6 rounded-[2rem] border border-[var(--os-border)] hover:border-[var(--os-accent)]/30 hover:-translate-y-1 transition-all group flex flex-col justify-between shadow-sm hover:shadow-xl relative overflow-hidden cursor-pointer active:scale-95"
                       >
-                        {/* Glow Effect */}
-                        <div className="absolute inset-x-12 -top-px h-px bg-gradient-to-r from-transparent via-[var(--os-accent)] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                        <div className="absolute inset-x-12 -top-px h-px bg-gradient-to-r from-transparent via-[var(--os-accent)] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
 
                         <div>
                           <div className="flex justify-between items-start mb-5 relative z-10">
@@ -172,7 +196,6 @@ export default function Clients() {
                             </div>
                             
                             <div className="flex gap-2">
-                              {/* Status Badge */}
                               <span className={`px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border ${
                                 isSecure ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
                               }`}>
@@ -202,19 +225,23 @@ export default function Clients() {
                             <FaCalendarAlt size={10} /> {new Date(client.createdAt).toLocaleDateString()}
                           </span>
                           
-                          {/* Hover Actions */}
                           <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                             <button
-                              onClick={() => { setEditingClient(client); setShowModal(true); }}
+                              onClick={(e) => { 
+                                e.stopPropagation(); // 🚀 PREVENTS NAVIGATION
+                                setEditingClient(client); 
+                                setShowModal(true); 
+                              }}
                               className="p-2 bg-[var(--os-bg)] text-[var(--os-text-muted)] hover:text-[var(--os-text-main)] border border-[var(--os-border)] rounded-lg transition-colors shadow-sm"
-                              title="Update Parameters"
                             >
                               <FaEdit size={10} />
                             </button>
                             <button
-                              onClick={() => handleDelete(client._id)}
+                              onClick={(e) => { 
+                                e.stopPropagation(); // 🚀 PREVENTS NAVIGATION
+                                handleDelete(client._id, client.name); 
+                              }}
                               className="p-2 bg-[var(--os-bg)] text-[var(--os-text-muted)] hover:text-rose-400 border border-[var(--os-border)] rounded-lg transition-colors shadow-sm"
-                              title="Purge Client"
                             >
                               <FaTrash size={10} />
                             </button>

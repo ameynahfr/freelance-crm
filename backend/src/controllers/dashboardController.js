@@ -8,30 +8,33 @@ export const getDashboardMetrics = async (req, res) => {
     const userId = req.user._id;
     const userRole = req.user.role;
     const now = new Date();
+    // Normalize "now" to the end of yesterday so today's tasks aren't marked overdue yet
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(now.getDate() - 7);
 
-    // --- 1. Define Visibility Filter ---
-    // Owners/Managers see everything they created or manage.
-    // Members see only projects where they are in the 'team' array.
     const projectFilter = userRole === "member" 
       ? { team: userId } 
       : { $or: [{ user: userId }, { manager: userId }, { team: userId }] };
 
     const taskFilter = { assignedTo: userId, status: { $ne: "done" } };
 
-    // --- 2. Run Parallel Queries ---
     const queries = [
       User.findById(userId).select("name email role"),
       Project.countDocuments({ ...projectFilter, status: "active" }),
       Project.countDocuments({ ...projectFilter, status: "pending" }),
       Project.countDocuments({ ...projectFilter, status: "completed" }),
-      Task.countDocuments({ assignedTo: userId, dueDate: { $lt: now }, status: { $ne: "done" } }),
+      // 🚀 MODIFIED: Fetch the actual overdue tasks instead of just counting
+      Task.find({ 
+        assignedTo: userId, 
+        dueDate: { $lt: startOfToday }, 
+        status: { $ne: "done" } 
+      }).populate("project", "title").sort({ dueDate: 1 }),
       Project.find(projectFilter).select("title progress client").sort({ updatedAt: -1 }).limit(5),
       Task.find(taskFilter).populate("project", "title").sort({ dueDate: 1 }).limit(5),
     ];
 
-    // Only fetch Invoice data if NOT a member
     if (userRole !== "member") {
       queries.push(
         Invoice.aggregate([
@@ -55,13 +58,12 @@ export const getDashboardMetrics = async (req, res) => {
 
     const results = await Promise.all(queries);
 
-    // --- 3. Parse Results ---
     const [
       userProfile,
       activeProjects,
       pendingProjects,
       completedProjects,
-      overdueTasks,
+      overdueTasksList, // 🚀 Renamed to reflect array
       projectProgressData,
       upcomingTasks,
       totalEarningsAgg,
@@ -87,7 +89,8 @@ export const getDashboardMetrics = async (req, res) => {
       completedProjects,
       totalEarnings,
       unpaidEarnings,
-      overdueTasks,
+      overdueTasks: overdueTasksList, // 🚀 Passing the array
+      overdueTasksCount: overdueTasksList.length, // 🚀 Passing the count
       projectProgressData,
       earningsOverTime: formattedEarnings,
       upcomingTasks,

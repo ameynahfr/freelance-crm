@@ -11,7 +11,6 @@ const taskSchema = new mongoose.Schema(
     description: String,
     status: {
       type: String,
-      // 🛡️ REJECTION ENGINE: Prevents Mongo IDs from being saved as status
       enum: ["todo", "in-progress", "done"],
       default: "todo",
       index: true,
@@ -35,6 +34,14 @@ const taskSchema = new mongoose.Schema(
       required: false,
       index: true,
     },
+    deliverableLink: {
+      type: String,
+      trim: true,
+    },
+    deliverableNotes: {
+      type: String,
+      trim: true,
+    }
   },
   { timestamps: true }
 );

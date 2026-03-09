@@ -18,6 +18,7 @@ import {
 } from "react-icons/fa";
 import TaskModal from "../components/TaskModal.jsx";
 import ProjectModal from "../components/ProjectModal.jsx";
+import TaskDossierModal from "../components/TaskDossierModal.jsx";
 
 // 🚀 API LAYER IMPORTS
 import { getProjectById, deleteProject as deleteProjectApi } from "../api/projectApi";
@@ -35,6 +36,8 @@ export default function ProjectDetails() {
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+
+  const [dossierTask, setDossierTask] = useState(null);
 
   const isManagement = user?.role === "owner" || user?.role === "manager";
 
@@ -154,10 +157,15 @@ export default function ProjectDetails() {
 
                 <div className="space-y-3">
                   {tasks.map(task => (
-                    <div key={task._id} className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--os-surface)]/50 border border-[var(--os-border)] group hover:bg-[var(--os-surface)] hover:border-[#D2C9D8]/20 transition-all">
+                    <div 
+                      key={task._id}
+                      onClick={() => setDossierTask(task)} 
+                      className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--os-surface)]/50 border border-[var(--os-border)] group hover:bg-[var(--os-surface)] hover:border-[#D2C9D8]/20 transition-all">
                       
                       {/* 🎨 COLORED STATUS ICONS */}
-                      <button onClick={() => handleToggleStatus(task)} className={`text-xl transition-all ${
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleToggleStatus(task); }}
+                        className={`text-xl transition-all ${
                         task.status === 'done' ? 'text-emerald-400' : 
                         task.status === 'in-progress' ? 'text-blue-400' : 'text-[var(--os-text-muted)] hover:text-[var(--os-text-main)]' 
                       }`}>
@@ -233,6 +241,15 @@ export default function ProjectDetails() {
 
       {isTaskModalOpen && <TaskModal projectId={id} editData={editingTask} onClose={() => { setIsTaskModalOpen(false); setEditingTask(null); }} onCreated={fetchProjectData} />}
       {isProjectModalOpen && <ProjectModal editData={project} onClose={() => setIsProjectModalOpen(false)} onUpdated={fetchProjectData} />}
+        {dossierTask && (
+  <TaskDossierModal 
+    task={dossierTask} 
+    currentUser={user} 
+    onClose={() => setDossierTask(null)} 
+    onUpdated={() => { fetchProjectData(); setDossierTask(null); }} 
+  />
+)}
     </div>
+    
   );
 }

@@ -128,14 +128,20 @@ export const updateTask = async (req, res) => {
 
     // 🚀 TRIGGER NOTIFICATION: Task Completed
     // If the status is being changed to 'done' and it wasn't already 'done'
+    // 🚀 TRIGGER NOTIFICATION: Task Completed / Work Submitted
     if (req.body.status === "done" && task.status !== "done") {
-      // Don't notify the user if they created the task themselves
       if (task.creator && task.creator.toString() !== req.user._id.toString()) {
         try {
+          // Check if they attached a deliverable
+          const hasDeliverable = req.body.deliverableLink || task.deliverableLink;
+          const alertMessage = hasDeliverable 
+            ? `Deliverable submitted for review: ${task.title}` 
+            : `Agent ${req.user.name.split(' ')[0]} finalized task: ${task.title}`;
+
           await Notification.create({
             recipient: task.creator,
             type: "system_update",
-            message: `Agent ${req.user.name.split(' ')[0]} finalized task: ${task.title}`,
+            message: alertMessage,
             link: `/projects/${task.project}`
           });
         } catch (notifErr) {

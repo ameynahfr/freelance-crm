@@ -1,3 +1,4 @@
+import { Toaster } from "react-hot-toast";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./hooks/useAuth.jsx";
 
@@ -13,6 +14,7 @@ import Profile from "./pages/Profile.jsx";
 import Team from "./pages/Team.jsx";
 import MyTasks from "./pages/MyTasks.jsx";
 import AgentProfile from "./pages/AgentProfile.jsx";
+import ClientDetails from "./pages/ClientDetails.jsx";
 
 // Enhanced Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -33,7 +35,32 @@ const ProtectedRoute = ({ children }) => {
 
 export default function App() {
   return (
-    <Routes>
+    <>
+      <Toaster 
+        position="bottom-right"
+        toastOptions={{
+          // Use your OS variables here
+          style: {
+            background: 'var(--os-surface)',
+            color: 'var(--os-text-main)',
+            border: '1px solid var(--os-border)',
+            borderRadius: '16px',
+            fontSize: '11px',
+            fontWeight: '900',
+            textTransform: 'uppercase',
+            letterSpacing: '0.1em',
+            padding: '12px 20px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)',
+          },
+          success: {
+            iconTheme: { primary: '#10b981', secondary: 'var(--os-surface)' },
+          },
+          error: {
+            iconTheme: { primary: '#f43f5e', secondary: 'var(--os-surface)' },
+          },
+        }}
+      />
+      <Routes>
       {/* Public Routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
@@ -51,6 +78,7 @@ export default function App() {
       <Route path="/projects/:projectId/board" element={<ProtectedRoute><MyTasks /></ProtectedRoute>} />
 
       <Route path="/clients" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
+      <Route path="/clients/:id" element={<ProtectedRoute><ClientDetails /></ProtectedRoute>} />
       <Route path="/invoices" element={<ProtectedRoute><Invoices /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
@@ -59,5 +87,6 @@ export default function App() {
       {/* Catch-all Fallback */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
+    </>
   );
 }

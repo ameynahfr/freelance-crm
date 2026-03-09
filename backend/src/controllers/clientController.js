@@ -127,3 +127,33 @@ export const deleteClient = async (req, res) => {
     res.status(500).json({ message: "Failed to delete client" });
   }
 };
+
+/**
+ * GET /api/clients/:id
+ * Get single client and all associated projects
+ */
+export const getClientById = async (req, res) => {
+  try {
+    if (req.user.role === "member") {
+      return res.status(403).json({ message: "Access denied." });
+    }
+
+    const { id } = req.params;
+    const rootOwnerId = getAgencyRootId(req.user);
+
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: "Invalid client ID" });
+
+    // Fetch the client
+    const client = await Client.findOne({ _id: id, user: rootOwnerId });
+    if (!client) return res.status(404).json({ message: "Client not found" });
+
+    // 🚀 Fetch all projects tied to this client
+    const projects = await Project.find({ client: id, user: rootOwnerId }).sort({ createdAt: -1 });
+
+    // Return both so the frontend can build a complete dossier
+    res.json({ client, projects });
+  } catch (error) {
+    console.error("Get client details error:", error);
+    res.status(500).json({ message: "Failed to fetch client dossier" });
+  }
+};
